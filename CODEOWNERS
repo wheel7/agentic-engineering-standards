@@ -1,0 +1,29 @@
+# CODEOWNERS - eigenaarschap per map
+#
+# LET OP: onderstaande teams zijn PLACEHOLDERS en moeten nog ingevuld worden met de
+# echte team- of gebruikersnamen van onze organisatie. Zolang dat niet gebeurd is,
+# werkt de automatische reviewer-toewijzing niet.
+#
+# Formaat: <pad> <eigenaar(s)>, bijvoorbeeld @onze-org/backend-team of @gebruikersnaam.
+# Een team moet schrijfrechten op deze repo hebben, anders negeert GitHub de regel.
+# De laatst matchende regel wint, dus specifieke paden onderaan.
+
+# Fallback: alles zonder specifieke eigenaar
+*                   @jouw-org/tech-leads
+
+# Stack-onafhankelijke afspraken - raken iedereen, dus breed reviewen
+/general/           @jouw-org/tech-leads
+
+# .NET
+/dotnet/            @jouw-org/backend-team
+
+# React
+/react/             @jouw-org/frontend-team
+
+# Skills - per stack de betreffende eigenaar
+/skills/            @jouw-org/tech-leads
+/skills/dotnet-feature/    @jouw-org/backend-team
+/skills/react-component/   @jouw-org/frontend-team
+
+# Templates - wijzigingen hier raken elk project dat ze kopieert
+/templates/         @jouw-org/tech-leads
