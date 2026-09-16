@@ -57,3 +57,6 @@ over de lijn gaat.
 
 - [ ] Wie bewaakt het contract als frontend en backend in verschillende repo's zitten?
 - [ ] Hoe voeren we een breaking change door zonder de frontend te breken?
+- [ ] Komt er een .NET-client (Blazor, console, andere service)? Dan gelden de regels
+      voor `.Contracts` uit [`../dotnet/solution-layout.md`](../dotnet/solution-layout.md).
+      Een React-frontend leest het contract uit OpenAPI en heeft dat project niet nodig.

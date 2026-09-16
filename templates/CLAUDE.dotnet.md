@@ -19,6 +19,7 @@ daaraan gaan via een PR in die repo, niet hier.
 @.standards/general/security.md
 @.standards/general/api-contracts.md
 @.standards/dotnet/ARCHITECTURE.md
+@.standards/dotnet/solution-layout.md
 @.standards/dotnet/testing.md
 
 Bijwerken naar de laatste versie:
@@ -32,6 +33,14 @@ Doe dat in een eigen PR, zodat de wijziging in de standaarden zichtbaar is in de
 ---
 
 ## Specifiek voor deze repo
+
+### Solution
+
+<!-- De productnaam bepaalt de projectnamen: <Product>.Domain, <Product>.Api, enz.
+     Zie .standards/dotnet/solution-layout.md. -->
+
+- **Productnaam**: <Product>
+- **Entry points**: <Product>.Api <en eventueel .Worker, .Blazor>
 
 ### Domein
 
@@ -52,8 +61,8 @@ Doe dat in een eigen PR, zodat de wijziging in de standaarden zichtbaar is in de
 - **Migrations**:
 
 ```bash
-dotnet ef migrations add <Naam> --project src/Infrastructure --startup-project src/Api
-dotnet ef database update       --project src/Infrastructure --startup-project src/Api
+dotnet ef migrations add <Naam> --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
+dotnet ef database update       --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
 ```
 
 - **Testdata / seeding**: <...>
@@ -63,7 +72,7 @@ dotnet ef database update       --project src/Infrastructure --startup-project s
 ```bash
 # <Vul de commando's in die hier echt werken>
 dotnet restore
-dotnet run --project src/Api
+dotnet run --project src/<Product>.Api
 ```
 
 - **URL lokaal**: <https://localhost:xxxx>

@@ -9,6 +9,9 @@ Volgt de architectuur uit `@.standards/dotnet/ARCHITECTURE.md`. Lees dat documen
 je twijfelt over een keuze; deze skill is de uitvoering van de checklist uit
 hoofdstuk 6, niet een vervanging ervan.
 
+`<Product>` in de paden hieronder is de productnaam van de solution, bijvoorbeeld
+`TodoApp` in `src/TodoApp.Domain/`. Zie `@.standards/dotnet/solution-layout.md`.
+
 ## Vooraf
 
 1. Lees `.standards/dotnet/ARCHITECTURE.md` (met name hoofdstuk 5, conventies).
@@ -25,7 +28,7 @@ benoem wel dát je ze overslaat.
 
 ### 1. Domain
 
-Voeg de entity of het gedrag toe in `src/Domain/<Feature>/`.
+Voeg de entity of het gedrag toe in `src/<Product>.Domain/<Feature>/`.
 
 - Private setters; state wijzigt alleen via methodes met een betekenisvolle naam.
 - Geen publieke parameterloze constructor (wel een private, voor EF Core).
@@ -33,7 +36,7 @@ Voeg de entity of het gedrag toe in `src/Domain/<Feature>/`.
 
 ### 2. Repository-interface
 
-Voeg de benodigde methode toe aan `I<Entity>Repository` in `src/Application/<Feature>/`.
+Voeg de benodigde methode toe aan `I<Entity>Repository` in `src/<Product>.Application/<Feature>/`.
 
 - Elke methode krijgt een `CancellationToken`.
 - Moet een command een bestaande entity wijzigen, dan is een aparte methode nodig
@@ -41,7 +44,7 @@ Voeg de benodigde methode toe aan `I<Entity>Repository` in `src/Application/<Fea
 
 ### 3. Command of query + handler
 
-In `src/Application/<Feature>/`:
+In `src/<Product>.Application/<Feature>/`:
 
 - Naamgeving: `{Werkwoord}{Entity}Command` / `Get{Entity}By{Criterium}Query`, handler
   is `{Naam}Handler`.
@@ -57,21 +60,21 @@ Geef nooit een domain-entity terug vanuit de API.
 
 ### 5. Infrastructure
 
-Implementeer de repository-methode in `src/Infrastructure/<Feature>/`.
+Implementeer de repository-methode in `src/<Product>.Infrastructure/<Feature>/`.
 
 ### 6. EF-configuratie en migration
 
 Alleen als het datamodel wijzigt:
 
 ```bash
-dotnet ef migrations add <Naam> --project src/Infrastructure --startup-project src/Api
+dotnet ef migrations add <Naam> --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
 ```
 
 Laat het uitvoeren van `database update` aan de gebruiker.
 
 ### 7. Handler registreren
 
-In `src/Api/Program.cs`: `builder.Services.AddScoped<{Naam}Handler>();`
+In `src/<Product>.Api/Program.cs`: `builder.Services.AddScoped<{Naam}Handler>();`
 
 ### 8. Endpoint toevoegen
 

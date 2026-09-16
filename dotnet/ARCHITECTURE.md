@@ -43,32 +43,38 @@ In die gevallen: begin met een simpele service-class en splits handlers af zodra
 
 Regel: afhankelijkheden wijzen altijd naar binnen. Domain kent niemand; Application kent geen EF Core.
 
+Elke laag is een eigen project met de naam `<Product>.<Laag>`, waarbij assembly-naam, root-namespace en mapnaam gelijk zijn. In dit document is het product `TodoApp`. Hoe projecten heten, hoe testprojecten heten en welke optionele projecten er zijn (`.Contracts`, `.Persistence`, `.Migrations`) staat in [`solution-layout.md`](solution-layout.md).
+
 ### Mappenstructuur
 
 ```
-src/
-├── Domain/
-│   └── Todos/
-│       └── Todo.cs
-├── Application/
-│   └── Todos/
-│       ├── ITodoRepository.cs
-│       ├── TodoDto.cs
-│       ├── CreateTodoCommand.cs
-│       ├── CreateTodoCommandHandler.cs
-│       ├── GetTodoByIdQuery.cs
-│       └── GetTodoByIdQueryHandler.cs
-├── Infrastructure/
-│   ├── Data/
-│   │   └── TodoDbContext.cs
-│   └── Todos/
-│       └── TodoRepository.cs
-└── Api/
-    ├── Program.cs
-    └── appsettings.json
+TodoApp.sln
+├── src/
+│   ├── TodoApp.Domain/
+│   │   └── Todos/
+│   │       └── Todo.cs
+│   ├── TodoApp.Application/
+│   │   └── Todos/
+│   │       ├── ITodoRepository.cs
+│   │       ├── TodoDto.cs
+│   │       ├── CreateTodoCommand.cs
+│   │       ├── CreateTodoCommandHandler.cs
+│   │       ├── GetTodoByIdQuery.cs
+│   │       └── GetTodoByIdQueryHandler.cs
+│   ├── TodoApp.Infrastructure/
+│   │   ├── Data/
+│   │   │   └── TodoDbContext.cs
+│   │   └── Todos/
+│   │       └── TodoRepository.cs
+│   └── TodoApp.Api/
+│       ├── Program.cs
+│       └── appsettings.json
+└── tests/
+    ├── TodoApp.Application.UnitTests/
+    └── TodoApp.ArchitectureTests/
 ```
 
-Organiseer per feature (`Todos/`, `Orders/`, ...), niet per technisch type (`Commands/`, `Handlers/`, ...).
+Organiseer binnen een laag per feature (`Todos/`, `Orders/`, ...), niet per technisch type (`Commands/`, `Handlers/`, ...). Technologie is een map binnen Infrastructure (`Data/` voor EF Core), nooit een eigen project.
 
 ---
 
@@ -77,18 +83,20 @@ Organiseer per feature (`Todos/`, `Orders/`, ...), niet per technisch type (`Com
 ```bash
 dotnet new sln -n TodoApp
 
-dotnet new classlib -n Domain         -o src/Domain         -f net8.0
-dotnet new classlib -n Application    -o src/Application    -f net8.0
-dotnet new classlib -n Infrastructure -o src/Infrastructure -f net8.0
-dotnet new web      -n Api            -o src/Api            -f net8.0
+dotnet new classlib -n TodoApp.Domain         -o src/TodoApp.Domain         -f net8.0
+dotnet new classlib -n TodoApp.Application    -o src/TodoApp.Application    -f net8.0
+dotnet new classlib -n TodoApp.Infrastructure -o src/TodoApp.Infrastructure -f net8.0
+dotnet new web      -n TodoApp.Api            -o src/TodoApp.Api            -f net8.0
 
-dotnet sln add src/Domain src/Application src/Infrastructure src/Api
+dotnet sln add src/TodoApp.Domain src/TodoApp.Application src/TodoApp.Infrastructure src/TodoApp.Api
 
 # Projectreferenties
-dotnet add src/Application    reference src/Domain
-dotnet add src/Infrastructure reference src/Application src/Domain
-dotnet add src/Api            reference src/Application src/Infrastructure
+dotnet add src/TodoApp.Application    reference src/TodoApp.Domain
+dotnet add src/TodoApp.Infrastructure reference src/TodoApp.Application src/TodoApp.Domain
+dotnet add src/TodoApp.Api            reference src/TodoApp.Application src/TodoApp.Infrastructure
 ```
+
+`-n` en `-o` krijgen dezelfde naam, zodat assembly, root-namespace en map overeenkomen. Vervang `TodoApp` door de naam van je eigen product.
 
 ### NuGet-packages
 
@@ -96,10 +104,10 @@ Let op: EF Core zit **niet** standaard in de .NET 8 SDK; deze packages moet je z
 
 ```bash
 # Infrastructure: EF Core + SQL Server provider
-dotnet add src/Infrastructure package Microsoft.EntityFrameworkCore.SqlServer --version 8.0.*
+dotnet add src/TodoApp.Infrastructure package Microsoft.EntityFrameworkCore.SqlServer --version 8.0.*
 
 # Api: nodig voor migrations via de CLI
-dotnet add src/Api package Microsoft.EntityFrameworkCore.Design --version 8.0.*
+dotnet add src/TodoApp.Api package Microsoft.EntityFrameworkCore.Design --version 8.0.*
 
 # Eenmalig: de dotnet-ef tool
 dotnet tool install --global dotnet-ef --version 8.*
@@ -113,10 +121,10 @@ Gebruik je de Package Manager Console in Visual Studio, voeg dan ook `Microsoft.
 
 ### 4.1 Domain: entity
 
-`src/Domain/Todos/Todo.cs`
+`src/TodoApp.Domain/Todos/Todo.cs`
 
 ```csharp
-namespace Domain.Todos;
+namespace TodoApp.Domain.Todos;
 
 public sealed class Todo
 {
@@ -148,12 +156,12 @@ Regels: private setters, state alleen wijzigen via methodes met betekenisvolle n
 
 ### 4.2 Application: repository-interface
 
-`src/Application/Todos/ITodoRepository.cs`
+`src/TodoApp.Application/Todos/ITodoRepository.cs`
 
 ```csharp
-using Domain.Todos;
+using TodoApp.Domain.Todos;
 
-namespace Application.Todos;
+namespace TodoApp.Application.Todos;
 
 public interface ITodoRepository
 {
@@ -167,10 +175,10 @@ public interface ITodoRepository
 
 ### 4.3 Application: DTO
 
-`src/Application/Todos/TodoDto.cs`
+`src/TodoApp.Application/Todos/TodoDto.cs`
 
 ```csharp
-namespace Application.Todos;
+namespace TodoApp.Application.Todos;
 
 public sealed class TodoDto
 {
@@ -185,10 +193,10 @@ Geef nooit domain-entities terug vanuit de API; altijd een DTO.
 
 ### 4.4 Application: command + handler
 
-`src/Application/Todos/CreateTodoCommand.cs`
+`src/TodoApp.Application/Todos/CreateTodoCommand.cs`
 
 ```csharp
-namespace Application.Todos;
+namespace TodoApp.Application.Todos;
 
 public sealed class CreateTodoCommand
 {
@@ -196,12 +204,12 @@ public sealed class CreateTodoCommand
 }
 ```
 
-`src/Application/Todos/CreateTodoCommandHandler.cs`
+`src/TodoApp.Application/Todos/CreateTodoCommandHandler.cs`
 
 ```csharp
-using Domain.Todos;
+using TodoApp.Domain.Todos;
 
-namespace Application.Todos;
+namespace TodoApp.Application.Todos;
 
 public sealed class CreateTodoCommandHandler
 {
@@ -232,10 +240,10 @@ public sealed class CreateTodoCommandHandler
 
 ### 4.5 Application: query + handler
 
-`src/Application/Todos/GetTodoByIdQuery.cs`
+`src/TodoApp.Application/Todos/GetTodoByIdQuery.cs`
 
 ```csharp
-namespace Application.Todos;
+namespace TodoApp.Application.Todos;
 
 public sealed class GetTodoByIdQuery
 {
@@ -243,12 +251,12 @@ public sealed class GetTodoByIdQuery
 }
 ```
 
-`src/Application/Todos/GetTodoByIdQueryHandler.cs`
+`src/TodoApp.Application/Todos/GetTodoByIdQueryHandler.cs`
 
 ```csharp
-using Domain.Todos;
+using TodoApp.Domain.Todos;
 
-namespace Application.Todos;
+namespace TodoApp.Application.Todos;
 
 public sealed class GetTodoByIdQueryHandler
 {
@@ -278,13 +286,13 @@ public sealed class GetTodoByIdQueryHandler
 
 ### 4.6 Infrastructure: EF Core DbContext
 
-`src/Infrastructure/Data/TodoDbContext.cs`
+`src/TodoApp.Infrastructure/Data/TodoDbContext.cs`
 
 ```csharp
-using Domain.Todos;
+using TodoApp.Domain.Todos;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Data;
+namespace TodoApp.Infrastructure.Data;
 
 public sealed class TodoDbContext : DbContext
 {
@@ -309,15 +317,15 @@ public sealed class TodoDbContext : DbContext
 
 ### 4.7 Infrastructure: repository-implementatie
 
-`src/Infrastructure/Todos/TodoRepository.cs`
+`src/TodoApp.Infrastructure/Todos/TodoRepository.cs`
 
 ```csharp
-using Application.Todos;
-using Domain.Todos;
-using Infrastructure.Data;
+using TodoApp.Application.Todos;
+using TodoApp.Domain.Todos;
+using TodoApp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Todos;
+namespace TodoApp.Infrastructure.Todos;
 
 public sealed class TodoRepository : ITodoRepository
 {
@@ -342,12 +350,12 @@ Let op: `GetByIdAsync` gebruikt `AsNoTracking()` en is dus bedoeld voor queries.
 
 ### 4.8 Api: Minimal API-endpoints + DI
 
-`src/Api/Program.cs`
+`src/TodoApp.Api/Program.cs`
 
 ```csharp
-using Application.Todos;
-using Infrastructure.Data;
-using Infrastructure.Todos;
+using TodoApp.Application.Todos;
+using TodoApp.Infrastructure.Data;
+using TodoApp.Infrastructure.Todos;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -389,7 +397,7 @@ app.MapGet("/todos/{id:guid}", async (
 app.Run();
 ```
 
-`src/Api/appsettings.json`
+`src/TodoApp.Api/appsettings.json`
 
 ```json
 {
@@ -409,8 +417,8 @@ app.Run();
 ### Migrations
 
 ```bash
-dotnet ef migrations add InitialCreate --project src/Infrastructure --startup-project src/Api
-dotnet ef database update             --project src/Infrastructure --startup-project src/Api
+dotnet ef migrations add InitialCreate --project src/TodoApp.Infrastructure --startup-project src/TodoApp.Api
+dotnet ef database update             --project src/TodoApp.Infrastructure --startup-project src/TodoApp.Api
 ```
 
 ---
@@ -454,7 +462,7 @@ Verdere afspraken:
 
 ## 7. Testen
 
-Mock `ITodoRepository` (bijvoorbeeld met Moq), roep `HandleAsync(...)` rechtstreeks aan, controleer het resultaat en verifieer de interacties.
+Unit tests staan in `tests/TodoApp.Application.UnitTests`; zie [`testing.md`](testing.md) voor de opzet en de architectuurtests. Mock `ITodoRepository` (bijvoorbeeld met Moq), roep `HandleAsync(...)` rechtstreeks aan, controleer het resultaat en verifieer de interacties.
 
 ```csharp
 [Fact]

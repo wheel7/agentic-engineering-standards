@@ -77,7 +77,8 @@ public async Task GetTodoById_ReturnsNull_WhenNotFound()
 
 ### Afspraken
 
-- Eén testproject per feature-laag die je test, bijvoorbeeld `tests/Application.Tests`.
+- Eén testproject per laag die je test, met suffix `.UnitTests`: `tests/TodoApp.Application.UnitTests`.
+  Naamgeving van testprojecten staat in [`solution-layout.md`](solution-layout.md).
 - Naamgeving: `{Methode}_{Verwacht}_{Wanneer}`, zoals `CreateTodo_SavesAndReturnsDto`.
 - Test het gedrag van de handler, niet de mock. Verifieer alleen interacties die er
   inhoudelijk toe doen (opslaan, niet-opslaan), niet elke aanroep.
@@ -88,9 +89,9 @@ public async Task GetTodoById_ReturnsNull_WhenNotFound()
 ### Packages
 
 ```bash
-dotnet new xunit -n Application.Tests -o tests/Application.Tests -f net8.0
-dotnet add tests/Application.Tests reference src/Application src/Domain
-dotnet add tests/Application.Tests package Moq
+dotnet new xunit -n TodoApp.Application.UnitTests -o tests/TodoApp.Application.UnitTests -f net8.0
+dotnet add tests/TodoApp.Application.UnitTests reference src/TodoApp.Application src/TodoApp.Domain
+dotnet add tests/TodoApp.Application.UnitTests package Moq
 ```
 
 ---
@@ -104,9 +105,9 @@ een laag waar hij niets te zoeken heeft.
 ### Packages
 
 ```bash
-dotnet new xunit -n Architecture.Tests -o tests/Architecture.Tests -f net8.0
-dotnet add tests/Architecture.Tests reference src/Domain src/Application src/Infrastructure src/Api
-dotnet add tests/Architecture.Tests package NetArchTest.Rules
+dotnet new xunit -n TodoApp.ArchitectureTests -o tests/TodoApp.ArchitectureTests -f net8.0
+dotnet add tests/TodoApp.ArchitectureTests reference src/TodoApp.Domain src/TodoApp.Application src/TodoApp.Infrastructure src/TodoApp.Api
+dotnet add tests/TodoApp.ArchitectureTests package NetArchTest.Rules
 ```
 
 ### Regels die we afdwingen
@@ -126,15 +127,15 @@ using Xunit;
 
 public class ArchitectureTests
 {
-    private const string DomainNamespace = "Domain";
-    private const string ApplicationNamespace = "Application";
-    private const string InfrastructureNamespace = "Infrastructure";
-    private const string ApiNamespace = "Api";
+    private const string DomainNamespace = "TodoApp.Domain";
+    private const string ApplicationNamespace = "TodoApp.Application";
+    private const string InfrastructureNamespace = "TodoApp.Infrastructure";
+    private const string ApiNamespace = "TodoApp.Api";
 
     [Fact]
     public void Domain_ShouldNotDependOnAnyOtherLayer()
     {
-        var result = Types.InAssembly(typeof(Domain.Todos.Todo).Assembly)
+        var result = Types.InAssembly(typeof(TodoApp.Domain.Todos.Todo).Assembly)
             .ShouldNot()
             .HaveDependencyOnAny(ApplicationNamespace, InfrastructureNamespace, ApiNamespace)
             .GetResult();
@@ -145,7 +146,7 @@ public class ArchitectureTests
     [Fact]
     public void Application_ShouldNotDependOnInfrastructureOrApi()
     {
-        var result = Types.InAssembly(typeof(Application.Todos.ITodoRepository).Assembly)
+        var result = Types.InAssembly(typeof(TodoApp.Application.Todos.ITodoRepository).Assembly)
             .ShouldNot()
             .HaveDependencyOnAny(InfrastructureNamespace, ApiNamespace)
             .GetResult();
@@ -156,7 +157,7 @@ public class ArchitectureTests
     [Fact]
     public void Application_ShouldNotDependOnEntityFrameworkCore()
     {
-        var result = Types.InAssembly(typeof(Application.Todos.ITodoRepository).Assembly)
+        var result = Types.InAssembly(typeof(TodoApp.Application.Todos.ITodoRepository).Assembly)
             .ShouldNot()
             .HaveDependencyOn("Microsoft.EntityFrameworkCore")
             .GetResult();
@@ -167,7 +168,7 @@ public class ArchitectureTests
     [Fact]
     public void Handlers_ShouldBeSealed()
     {
-        var result = Types.InAssembly(typeof(Application.Todos.ITodoRepository).Assembly)
+        var result = Types.InAssembly(typeof(TodoApp.Application.Todos.ITodoRepository).Assembly)
             .That()
             .HaveNameEndingWith("Handler")
             .Should()
@@ -195,6 +196,7 @@ herhaaldelijk terugkomt. Kandidaten die nu nog niet zijn afgedwongen:
 - Handlers hebben precies één publieke methode `HandleAsync`
 - Commands, queries en DTO's zijn `sealed` en gebruiken `init`-properties
 - Domain-entities worden niet teruggegeven vanuit de Api-laag
+- Zodra er een `.Contracts`-project is: dat heeft geen dependency op een andere laag
 
 ---
 
@@ -203,7 +205,7 @@ herhaaldelijk terugkomt. Kandidaten die nu nog niet zijn afgedwongen:
 **Nog uit te werken.**
 
 Hier hoort te staan hoe we de echte keten testen: API-endpoint erin, database eruit.
-Open punten voor het team:
+Het project heet `tests/TodoApp.Api.IntegrationTests`. Open punten voor het team:
 
 - `WebApplicationFactory<Program>` als host?
 - Welke database: Testcontainers met SQL Server, LocalDB, of de EF Core in-memory

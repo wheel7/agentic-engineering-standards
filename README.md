@@ -21,6 +21,7 @@ engineering-standards/
 │   └── api-contracts.md
 ├── dotnet/             .NET-specifiek
 │   ├── ARCHITECTURE.md
+│   ├── solution-layout.md
 │   └── testing.md
 ├── react/              React-specifiek
 │   ├── ARCHITECTURE.md
