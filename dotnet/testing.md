@@ -89,7 +89,7 @@ public async Task GetTodoById_ReturnsNull_WhenNotFound()
 ### Packages
 
 ```bash
-dotnet new xunit -n TodoApp.Application.UnitTests -o tests/TodoApp.Application.UnitTests -f net8.0
+dotnet new xunit -n TodoApp.Application.UnitTests -o tests/TodoApp.Application.UnitTests -f net10.0
 dotnet add tests/TodoApp.Application.UnitTests reference src/TodoApp.Application src/TodoApp.Domain
 dotnet add tests/TodoApp.Application.UnitTests package Moq
 ```
@@ -105,7 +105,7 @@ een laag waar hij niets te zoeken heeft.
 ### Packages
 
 ```bash
-dotnet new xunit -n TodoApp.ArchitectureTests -o tests/TodoApp.ArchitectureTests -f net8.0
+dotnet new xunit -n TodoApp.ArchitectureTests -o tests/TodoApp.ArchitectureTests -f net10.0
 dotnet add tests/TodoApp.ArchitectureTests reference src/TodoApp.Domain src/TodoApp.Application src/TodoApp.Infrastructure src/TodoApp.Api
 dotnet add tests/TodoApp.ArchitectureTests package NetArchTest.Rules
 ```

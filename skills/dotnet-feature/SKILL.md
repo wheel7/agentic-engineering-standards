@@ -1,6 +1,6 @@
 ---
 name: dotnet-feature
-description: Voegt een nieuwe feature (command of query) toe aan een .NET 8 API volgens onze CQRS-architectuur zonder MediatR. Gebruik deze skill wanneer er een nieuw endpoint, command, query of handler bij moet komen in een project met de lagen Domain, Application, Infrastructure en Api - bijvoorbeeld "voeg een endpoint toe om een todo af te ronden" of "maak een query om orders per klant op te halen". Niet gebruiken voor het opzetten van een nieuw project of voor wijzigingen die alleen bestaande code aanpassen.
+description: Voegt een nieuwe feature (command of query) toe aan een .NET 10 API volgens onze CQRS-architectuur zonder MediatR. Gebruik deze skill wanneer er een nieuw endpoint, command, query of handler bij moet komen in een project met de lagen Domain, Application, Infrastructure en Api - bijvoorbeeld "voeg een endpoint toe om een todo af te ronden" of "maak een query om orders per klant op te halen". Niet gebruiken voor het opzetten van een nieuw project of voor wijzigingen die alleen bestaande code aanpassen.
 ---
 
 # Nieuwe .NET-feature toevoegen
@@ -14,7 +14,8 @@ hoofdstuk 6, niet een vervanging ervan.
 
 ## Vooraf
 
-1. Lees `.standards/dotnet/ARCHITECTURE.md` (met name hoofdstuk 5, conventies).
+1. Lees `.standards/dotnet/ARCHITECTURE.md` (met name hoofdstuk 5, conventies) en
+   `.standards/dotnet/solution-layout.md` (projectnamen en paden).
 2. Lees het `CLAUDE.md` van het project voor repo-specifieke afwijkingen.
 3. Bepaal: is dit een **command** (wijzigt state) of een **query** (leest state)?
    Beide in één handler is geen optie - splits dan.

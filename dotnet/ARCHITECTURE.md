@@ -1,4 +1,4 @@
-# Architectuur: CQRS in .NET 8 (pragmatisch, zonder MediatR)
+# Architectuur: CQRS in .NET 10 (pragmatisch, zonder MediatR)
 
 > Commands wijzigen state. Queries lezen state. Simpel, expliciet, testbaar.
 
@@ -83,10 +83,10 @@ Organiseer binnen een laag per feature (`Todos/`, `Orders/`, ...), niet per tech
 ```bash
 dotnet new sln -n TodoApp
 
-dotnet new classlib -n TodoApp.Domain         -o src/TodoApp.Domain         -f net8.0
-dotnet new classlib -n TodoApp.Application    -o src/TodoApp.Application    -f net8.0
-dotnet new classlib -n TodoApp.Infrastructure -o src/TodoApp.Infrastructure -f net8.0
-dotnet new web      -n TodoApp.Api            -o src/TodoApp.Api            -f net8.0
+dotnet new classlib -n TodoApp.Domain         -o src/TodoApp.Domain         -f net10.0
+dotnet new classlib -n TodoApp.Application    -o src/TodoApp.Application    -f net10.0
+dotnet new classlib -n TodoApp.Infrastructure -o src/TodoApp.Infrastructure -f net10.0
+dotnet new web      -n TodoApp.Api            -o src/TodoApp.Api            -f net10.0
 
 dotnet sln add src/TodoApp.Domain src/TodoApp.Application src/TodoApp.Infrastructure src/TodoApp.Api
 
@@ -100,17 +100,17 @@ dotnet add src/TodoApp.Api            reference src/TodoApp.Application src/Todo
 
 ### NuGet-packages
 
-Let op: EF Core zit **niet** standaard in de .NET 8 SDK; deze packages moet je zelf toevoegen.
+Let op: EF Core zit **niet** standaard in de .NET 10 SDK; deze packages moet je zelf toevoegen.
 
 ```bash
 # Infrastructure: EF Core + SQL Server provider
-dotnet add src/TodoApp.Infrastructure package Microsoft.EntityFrameworkCore.SqlServer --version 8.0.*
+dotnet add src/TodoApp.Infrastructure package Microsoft.EntityFrameworkCore.SqlServer --version 10.0.*
 
 # Api: nodig voor migrations via de CLI
-dotnet add src/TodoApp.Api package Microsoft.EntityFrameworkCore.Design --version 8.0.*
+dotnet add src/TodoApp.Api package Microsoft.EntityFrameworkCore.Design --version 10.0.*
 
 # Eenmalig: de dotnet-ef tool
-dotnet tool install --global dotnet-ef --version 8.*
+dotnet tool install --global dotnet-ef --version 10.*
 ```
 
 Gebruik je de Package Manager Console in Visual Studio, voeg dan ook `Microsoft.EntityFrameworkCore.Tools` toe aan het Api-project.
