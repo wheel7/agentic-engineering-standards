@@ -21,6 +21,9 @@ daaraan gaan via een PR in die repo, niet hier.
 @.standards/dotnet/ARCHITECTURE.md
 @.standards/dotnet/solution-layout.md
 @.standards/dotnet/testing.md
+@.standards/ops/database.md
+@.standards/ops/containers.md
+@.standards/ops/ci-cd.md
 
 Bijwerken naar de laatste versie:
 
@@ -56,8 +59,9 @@ Doe dat in een eigen PR, zodat de wijziging in de standaarden zichtbaar is in de
 
 <!-- Welke database, waar draait die, hoe kom je erbij? -->
 
-- **Type**: <SQL Server / PostgreSQL / ...>
-- **Connectionstring lokaal**: <staat in user-secrets / appsettings.Development.json>
+- **Type**: PostgreSQL <major-versie, gelijk aan docker-compose.yml en productie>
+- **Connectionstring lokaal**: komt uit `docker-compose.yml`; wijkt dit project daarvan
+  af, noteer dan hier hoe.
 - **Migrations**:
 
 ```bash
@@ -70,8 +74,11 @@ dotnet ef database update       --project src/<Product>.Infrastructure --startup
 ### Lokaal draaien
 
 ```bash
-# <Vul de commando's in die hier echt werken>
-dotnet restore
+# Alles in containers, inclusief database:
+docker compose up
+
+# Of alleen de database in een container en de API erbuiten:
+docker compose up -d db
 dotnet run --project src/<Product>.Api
 ```
 
@@ -79,6 +86,19 @@ dotnet run --project src/<Product>.Api
 - **Benodigde secrets**: <welke, en hoe zet je ze klaar - bijv. dotnet user-secrets>
 - **Afhankelijkheden die moeten draaien**: <database, message broker, mock-services>
 - **Tests draaien**: `dotnet test`
+
+### Hosting
+
+<!-- Waar draait dit, hoe komt het daar, en hoe krijg je het terug als het misgaat?
+     De generieke afspraken staan in .standards/ops/; hier alleen wat per project
+     verschilt. -->
+
+- **Draait op**: <Azure Container Apps / eigen server / ...>
+- **Omgevingen**: <test, productie - en de URL's>
+- **Deploy**: <welke workflow, en wat triggert hem>
+- **Terugrollen**: <hoe, en wie mag dat>
+- **Logs en alerting**: <waar kijk je als het misgaat>
+- **Secrets**: <waar staan ze, wie beheert ze>
 
 ### Afwijkingen van de standaard
 

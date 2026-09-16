@@ -26,6 +26,10 @@ engineering-standards/
 ├── react/              React-specifiek
 │   ├── ARCHITECTURE.md
 │   └── testing.md
+├── ops/                Draaien en uitrollen
+│   ├── database.md
+│   ├── containers.md
+│   └── ci-cd.md
 ├── skills/             AI-skills (stap-voor-stap werkinstructies)
 │   ├── dotnet-feature/SKILL.md
 │   └── react-component/SKILL.md
@@ -37,6 +41,10 @@ engineering-standards/
 Uitgangspunt: **één repo voor alle stacks**. `general/` voor wat overal geldt, daarnaast
 een map per stack. Zo hoeft een project maar één submodule binnen te halen, ook als het
 een full-stack repo is.
+
+`ops/` staat op een andere as dan de stackmappen: die gaan over hoe je code schrijft,
+`ops/` over hoe het ding draait. PostgreSQL, containers en GitHub Actions zijn de
+standaard; een project dat afwijkt legt dat met de reden vast in het eigen `CLAUDE.md`.
 
 ---
 

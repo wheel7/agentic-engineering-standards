@@ -103,8 +103,9 @@ dotnet add src/TodoApp.Api            reference src/TodoApp.Application src/Todo
 Let op: EF Core zit **niet** standaard in de .NET 10 SDK; deze packages moet je zelf toevoegen.
 
 ```bash
-# Infrastructure: EF Core + SQL Server provider
-dotnet add src/TodoApp.Infrastructure package Microsoft.EntityFrameworkCore.SqlServer --version 10.0.*
+# Infrastructure: EF Core + PostgreSQL provider + snake_case naamgeving
+dotnet add src/TodoApp.Infrastructure package Npgsql.EntityFrameworkCore.PostgreSQL --version 10.0.*
+dotnet add src/TodoApp.Infrastructure package EFCore.NamingConventions --version 10.0.*
 
 # Api: nodig voor migrations via de CLI
 dotnet add src/TodoApp.Api package Microsoft.EntityFrameworkCore.Design --version 10.0.*
@@ -114,6 +115,8 @@ dotnet tool install --global dotnet-ef --version 10.*
 ```
 
 Gebruik je de Package Manager Console in Visual Studio, voeg dan ook `Microsoft.EntityFrameworkCore.Tools` toe aan het Api-project.
+
+PostgreSQL is onze standaarddatabase. De afspraken over kolomtypes, sleutels en migrations staan in [`../ops/database.md`](../ops/database.md); lokaal draaien via `docker compose up` staat in [`../ops/containers.md`](../ops/containers.md).
 
 ---
 
@@ -138,7 +141,7 @@ public sealed class Todo
 
     public Todo(string title)
     {
-        Id = Guid.NewGuid();
+        Id = Guid.CreateVersion7();
         Title = title;
         IsCompleted = false;
         CreatedAtUtc = DateTime.UtcNow;
@@ -153,6 +156,8 @@ public sealed class Todo
 ```
 
 Regels: private setters, state alleen wijzigen via methodes met betekenisvolle namen, geen publieke parameterloze constructor.
+
+`Guid.CreateVersion7()` in plaats van `Guid.NewGuid()`: die sleutels lopen op in de tijd en houden de index compact. Zie [`../ops/database.md`](../ops/database.md).
 
 ### 4.2 Application: repository-interface
 
@@ -362,8 +367,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Database
 builder.Services.AddDbContext<TodoDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options
+        .UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+        .UseSnakeCaseNamingConvention());
 
 // Repositories
 builder.Services.AddScoped<ITodoRepository, TodoRepository>();
@@ -402,7 +408,7 @@ app.Run();
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=TodoApp;Trusted_Connection=True;TrustServerCertificate=True"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=todoapp;Username=todoapp;Password=localdev"
   },
   "Logging": {
     "LogLevel": {
@@ -420,6 +426,8 @@ app.Run();
 dotnet ef migrations add InitialCreate --project src/TodoApp.Infrastructure --startup-project src/TodoApp.Api
 dotnet ef database update             --project src/TodoApp.Infrastructure --startup-project src/TodoApp.Api
 ```
+
+`database update` draai je lokaal. Op test en productie gaan migrations via de pipeline en nooit bij het opstarten van de applicatie; zie [`../ops/database.md`](../ops/database.md) en [`../ops/ci-cd.md`](../ops/ci-cd.md).
 
 ---
 

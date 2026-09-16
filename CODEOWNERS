@@ -25,5 +25,8 @@
 /skills/dotnet-feature/    @jouw-org/backend-team
 /skills/react-component/   @jouw-org/frontend-team
 
+# Ops - database, containers, CI/CD. Raakt productie, dus breed reviewen.
+/ops/               @jouw-org/tech-leads
+
 # Templates - wijzigingen hier raken elk project dat ze kopieert
 /templates/         @jouw-org/tech-leads

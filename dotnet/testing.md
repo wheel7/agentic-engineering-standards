@@ -202,16 +202,34 @@ herhaaldelijk terugkomt. Kandidaten die nu nog niet zijn afgedwongen:
 
 ## 3. Integratietests
 
-**Nog uit te werken.**
+Hier testen we de echte keten: API-endpoint erin, database eruit. Het project heet
+`tests/TodoApp.Api.IntegrationTests`.
 
-Hier hoort te staan hoe we de echte keten testen: API-endpoint erin, database eruit.
-Het project heet `tests/TodoApp.Api.IntegrationTests`. Open punten voor het team:
+**Host**: `WebApplicationFactory<Program>`, zodat dezelfde DI-registraties draaien als in
+productie.
 
-- `WebApplicationFactory<Program>` als host?
-- Welke database: Testcontainers met SQL Server, LocalDB, of de EF Core in-memory
-  provider? (In-memory gedraagt zich op punten anders dan SQL Server, dus dat is
-  niet zonder meer een veilige keuze.)
-- Hoe zetten we testdata klaar en ruimen we die weer op?
-- Draaien ze mee in elke PR, of alleen nachtelijk?
+**Database**: Testcontainers met hetzelfde Postgres-image als in
+[`../ops/containers.md`](../ops/containers.md). Niet de EF Core in-memory provider: die
+kent geen constraints, geen foreign keys en geen echte SQL, dus een test slaagt daar
+terwijl productie faalt. Een echte database in een container kost een paar seconden
+opstarttijd en is dat ruimschoots waard.
 
-Tot die tijd: unit tests op de handlers plus de architectuurtests hierboven.
+Dezelfde aanpak werkt lokaal en in CI, want de GitHub-runners hebben Docker. Zie
+[`../ops/ci-cd.md`](../ops/ci-cd.md).
+
+```bash
+dotnet new xunit -n TodoApp.Api.IntegrationTests -o tests/TodoApp.Api.IntegrationTests -f net10.0
+dotnet add tests/TodoApp.Api.IntegrationTests reference src/TodoApp.Api
+dotnet add tests/TodoApp.Api.IntegrationTests package Microsoft.AspNetCore.Mvc.Testing
+dotnet add tests/TodoApp.Api.IntegrationTests package Testcontainers.PostgreSql
+```
+
+**Draaien mee in elke pull request.** Een suite die alleen 's nachts draait, vertelt je
+'s ochtends dat iemand anders iets heeft gebroken, en dan is de context weg.
+
+Nog te beslissen door het team:
+
+- Hoe we testdata klaarzetten en opruimen: één container per testklasse, of één container
+  met een transactie die na elke test terugdraait.
+- Of we de migrations draaien of het schema in één keer aanmaken bij het starten van de
+  container.
