@@ -180,3 +180,10 @@ Two rules of thumb:
 These standards were written for one team and are shared in case they are useful to
 others. Nothing in here is universal advice. Where we made a choice, we wrote down the
 reasoning, so you can decide whether it applies to you.
+
+---
+
+## License
+
+[MIT](LICENSE). Take what is useful, adapt it to your own team, ship it. The only
+condition is that the copyright notice travels with substantial copies.
