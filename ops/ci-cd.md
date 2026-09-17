@@ -21,7 +21,11 @@ Two workflows, no more:
 | File | Runs on | Does |
 |---|---|---|
 | `.github/workflows/ci.yml` | every pull request and push to `main` | build, test, check |
-| `.github/workflows/cd.yml` | push to `main` | build image, run migrations, deploy |
+| `.github/workflows/cd.yml` | a successful CI run on `main` | build image, run migrations, deploy, smoke test |
+
+Read that second row carefully. CD does **not** trigger on push. If it did, the two
+workflows would run side by side and a failing test would not stop the deploy. Chapter 4
+explains the wiring.
 
 Only split it up further when something really gets added. Five workflows that call each
 other is something nobody reads any more.
@@ -110,24 +114,35 @@ there while production fails.
 
 ## 4. CD
 
+The deploy hangs off the CI run, not off the push.
+
 ```yaml
 name: CD
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
 
 permissions:
   contents: read
   packages: write
   id-token: write
 
+env:
+  # Never github.sha in this workflow. See the warning below.
+  SHA: ${{ github.event.workflow_run.head_sha }}
+
 jobs:
   image:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ env.SHA }}
           submodules: recursive
 
       - uses: docker/login-action@v3
@@ -141,7 +156,7 @@ jobs:
           context: .
           file: src/TodoApp.Api/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          tags: ghcr.io/${{ github.repository }}:${{ env.SHA }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -152,6 +167,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ env.SHA }}
           submodules: recursive
 
       - uses: actions/setup-dotnet@v4
@@ -171,15 +187,73 @@ jobs:
         run: ./migrate --connection "$CONNECTION"
 
       # Deploy the new image after this. How depends on where it runs.
+
+  smoke:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: The deployed version answers
+        run: |
+          for attempt in $(seq 1 10); do
+            if curl -fsS "${{ vars.PRODUCTION_URL }}/health/ready"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
 ```
 
-The order is not optional: **migrations first, then the new version**. During a deploy old
-and new run side by side for a moment, so the schema has to cope with both. Hence the
-two-step approach for breaking changes from
-[`database.md`](database.md).
+### Why the deploy does not trigger on push
 
-`environment: production` gives you required reviewers in GitHub and separate secrets per
-environment. Turn that on before anything is really live.
+Two workflows that both listen to `push` run independently. GitHub does not order them
+and CD has no idea CI exists, so a red test does not stop anything. The broken version
+goes live while the failure email is still being written. Triggering CD from the CI run
+itself is what makes the tests a gate instead of a report.
+
+Branch protection is the other half of this and does not replace it. Protection stops a
+failing branch from being merged; the `workflow_run` gate stops a deploy when CI fails on
+`main` anyway, which happens through a flaky test, a difference in the runner, or an
+admin pushing straight to the branch.
+
+### The trap in workflow_run
+
+In a `workflow_run` event, `github.sha` and the default `actions/checkout` ref both point
+at the head of the default branch **at the moment the event fires**, not at the commit CI
+actually tested. Push twice in quick succession and you will build the second commit,
+deploy it, and tag it with a green tick that belongs to the first one.
+
+So, without exception:
+
+- Every checkout gets `ref: ${{ env.SHA }}`.
+- Every image tag uses the same value.
+- Anything that reports which version went live uses it too.
+
+Two more things that are easy to miss. `types: [completed]` fires on failure and
+cancellation as well, so the `conclusion == 'success'` guard is what actually does the
+work. And the `head_branch` guard keeps CI runs from pull requests out of it, because
+those carry the PR branch as their head.
+
+A workflow only triggers `workflow_run` once its file exists on the default branch, so
+this wiring does nothing until it is merged. Test it by merging it, not by watching a PR.
+
+### The simpler alternative
+
+One workflow with a deploy job that has `needs:` on the test job gives you the same gate
+with none of the sha subtleties, because there is only one run and one commit. The price
+is that the two concerns live in one file and every pull request shows a skipped deploy
+job.
+
+Take that route if the `workflow_run` wiring ever turns out to be more machinery than it
+earns. What is not an option is two workflows that both trigger on push.
+
+### The smoke test
+
+The gate stops a build that fails its tests. It does not notice a deploy that succeeded
+into a broken environment: a missing secret, a migration that ran but left the
+application unable to start, a health check that never goes ready.
+
+One `curl` against `/health/ready` from [`containers.md`](containers.md), retried for a
+minute or two, catches that class of failure while you are still looking at the run.
 
 ---
 
@@ -201,12 +275,22 @@ environment. Turn that on before anything is really live.
 Set these as required checks in the branch protection of `main`:
 
 - build succeeds
-- all tests pass
+- all tests pass, in every category that applies to the change
 - no vulnerable packages
 
-This belongs with the open questions in [`../general/git-workflow.md`](../general/git-workflow.md)
-about branch protection and required checks. As long as those are not filled in, the
-workflow is present but blocks nothing.
+Required checks are what makes the workflow a gate rather than a report. A workflow
+without them runs, goes red, and changes nothing about what a person is allowed to do
+next.
+
+Two separate gates, and you want both:
+
+| Gate | Stops | Set up as |
+|---|---|---|
+| Branch protection | merging a branch whose CI is red | required checks on `main` |
+| `workflow_run` on CD | deploying when CI on `main` is red | the trigger in chapter 4 |
+
+What has to be tested before any of this is worth running is in
+[`../general/testing.md`](../general/testing.md).
 
 ---
 
@@ -214,7 +298,10 @@ workflow is present but blocks nothing.
 
 1. Copy `ci.yml` and `cd.yml` and adjust the project names.
 2. `submodules: recursive` in every checkout, plus the guard step that proves it worked.
-3. Branch protection on `main` with the checks from chapter 6.
-4. Environment `production` with reviewers and its own secrets.
-5. OIDC set up for the deploy, no static keys.
-6. Watch the first deploy manually, including the migration step.
+3. CD triggers on `workflow_run`, never on `push`, and every checkout and tag uses
+   `head_sha`.
+4. Branch protection on `main` with the checks from chapter 6.
+5. Environment `production` with reviewers and its own secrets.
+6. OIDC set up for the deploy, no static keys.
+7. `PRODUCTION_URL` set as a repository variable, so the smoke test has somewhere to look.
+8. Watch the first deploy manually, including the migration step.

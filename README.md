@@ -28,6 +28,7 @@ agentic-engineering-standards/
 ├── CODEOWNERS
 ├── general/            Stack-independent conventions
 │   ├── language.md
+│   ├── testing.md
 │   ├── git-workflow.md
 │   ├── security.md
 │   └── api-contracts.md

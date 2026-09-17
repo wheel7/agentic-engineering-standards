@@ -16,6 +16,7 @@ These apply to this project. They live in the submodule `.standards`; changes to
 go through a PR in that repo, not here.
 
 @.standards/general/language.md
+@.standards/general/testing.md
 @.standards/general/git-workflow.md
 @.standards/general/security.md
 @.standards/general/api-contracts.md

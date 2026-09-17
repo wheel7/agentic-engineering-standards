@@ -63,6 +63,12 @@ Include the component in the feature's `index.ts` if it is used outside the feat
 
 - Run the project's linter, the typecheck (`tsc --noEmit`) and the tests.
 - Report which files you added.
+- Report the test evidence in the format from `@.standards/general/testing.md`: the
+  command you ran, the summary line it actually printed, which tests you added and what
+  they assert, what this change touches that no test covers, and anything you could not
+  verify here. Those last two are not allowed to be empty, and a summary of a run that
+  did not happen is worse than saying you could not run it.
+
 - Did you run into a choice that is still open in `react/ARCHITECTURE.md` (state,
   styling, forms)? Then report what you chose and why, so the team can take that along
   in the review of the standard.

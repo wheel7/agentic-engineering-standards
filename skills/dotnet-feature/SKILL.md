@@ -97,4 +97,12 @@ was saved; for a query: nothing was saved).
 - Run `dotnet build` and `dotnet test`.
 - Walk through the conventions table in chapter 5 of ARCHITECTURE.md.
 - If there are architecture tests, they must be green - those guard the layer rules.
+- Fixing a bug? Confirm the test fails without the fix before you call it done. A test
+  that passes either way is testing something else.
 - Report which files you added or changed, and which steps you skipped and why.
+- Report the test evidence in the format from `@.standards/general/testing.md`: the
+  command you ran, the summary line it actually printed, which tests you added and what
+  they assert, what this change touches that no test covers, and anything you could not
+  verify here. Those last two are not allowed to be empty, and a summary of a run that
+  did not happen is worse than saying you could not run it.
+

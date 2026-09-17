@@ -29,9 +29,12 @@ Applies to every project, whatever the stack.
 
 - TODO: number of required reviewers.
 - TODO: merge strategy: squash, merge commit, or rebase?
-- TODO: which checks have to be green before you may merge (build, tests, linter)?
+- Settled: build, tests and the vulnerable-package check. Set them as required checks
+  on `main`. See [`testing.md`](testing.md) and
+  [`../ops/ci-cd.md`](../ops/ci-cd.md).
 - TODO: maximum size of a PR - when do we ask for a split?
-- TODO: do we use a PR template? If so, what goes in it?
+- Settled: yes, and it carries the test evidence block from [`testing.md`](testing.md).
+  What else goes in it is still open.
 - TODO: set branch protection rules on `main`.
 
 ## 4. Submodule `.standards`
