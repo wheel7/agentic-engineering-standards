@@ -42,6 +42,7 @@ agentic-engineering-standards/
 ├── ops/                Running and shipping
 │   ├── database.md
 │   ├── containers.md
+│   ├── environments.md
 │   └── ci-cd.md
 ├── skills/             Agent skills, step-by-step working instructions
 │   ├── project-setup/SKILL.md

@@ -22,6 +22,7 @@ go through a PR in that repo, not here.
 @.standards/general/api-contracts.md
 @.standards/react/ARCHITECTURE.md
 @.standards/react/testing.md
+@.standards/ops/environments.md
 
 > Note: the React standards are a **draft** at the moment. If this project deviates from
 > them, note that below - that is valuable input for the review.

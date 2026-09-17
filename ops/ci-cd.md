@@ -359,6 +359,18 @@ application unable to start, a health check that never goes ready.
 One `curl` against `/health/ready` from [`containers.md`](containers.md), retried for a
 minute or two, catches that class of failure while you are still looking at the run.
 
+### More than one environment
+
+`environment: production` is what gives you required reviewers and per-environment
+secrets in GitHub. Turn it on before anything is really live, because until you do, the
+deploy job is a script that anyone who can merge has already run.
+
+The workflow above is the shape for a single deployed environment. With more of them the
+same image is promoted rather than rebuilt: one job per environment, each with its own
+`environment:` and its own approval, all carrying the same tag. A green run on `main`
+goes to test on its own; acceptance and production are deliberate. See
+[`environments.md`](environments.md).
+
 ---
 
 ## 6. Secrets

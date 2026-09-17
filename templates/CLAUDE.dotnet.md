@@ -25,6 +25,7 @@ go through a PR in that repo, not here.
 @.standards/dotnet/testing.md
 @.standards/ops/database.md
 @.standards/ops/containers.md
+@.standards/ops/environments.md
 @.standards/ops/ci-cd.md
 
 Updating to the latest version:
@@ -110,18 +111,26 @@ dotnet run --project src/<Product>.Api
 - **Dependencies that must be running**: <database, message broker, mock services>
 - **Running tests**: `dotnet test`
 
-### Hosting
+### Hosting and environments
 
 <!-- Where does this run, how does it get there, and how do you get it back when it goes
-     wrong? The generic conventions are in .standards/ops/; here only what differs
-     per project. -->
+     wrong? The generic conventions are in .standards/ops/environments.md; here only what
+     differs per project. Drop the rows for environments this project does not have. -->
 
-- **Runs on**: <Azure Container Apps / own server / ...>
-- **Environments**: <test, production - and the URLs>
+- **Runs on**: <own Debian host with Docker / ... >
 - **Deploy**: <which workflow, and what triggers it>
 - **Rolling back**: <how, and who is allowed to>
 - **Logs and alerting**: <where do you look when it goes wrong>
-- **Secrets**: <where are they, who manages them>
+
+| Environment | URLs | Database | App registration | Deploy approved by |
+|---|---|---|---|---|
+| Test | <test.example.com, api.test.example.com> | rebuilt on deploy | <name> | automatic |
+| Acceptance | <acc.example.com, api.acc.example.com> | persists | <name> | <who> |
+| Production | <example.com, api.example.com> | persists | <name> | <who> |
+
+- **Seed data for test**: <where it lives, and what is in it>
+- **Acceptance refresh**: <how often, and where the anonymization runs>
+- **Secrets**: <which GitHub Environment holds what>
 
 ### Deviations from the standard
 

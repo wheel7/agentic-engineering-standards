@@ -57,11 +57,24 @@ provider and its subject.
 Ask for the system user id as well, or decide to generate one. Every row needs a
 `created_by`, including the rows no logged-in person ever creates.
 
-### 6. Hosting
+### 6. Environments and hosting
 
-Where does this run, and who deploys it? The answer drives the deploy step of the CD
-workflow. If it is not decided yet, say so in the project `CLAUDE.md` rather than
-inventing something.
+Where does this run, and who is allowed to deploy to it? The answer drives the deploy
+jobs in the CD workflow.
+
+Start from two, development and production, and only add more when something needs them.
+See `@.standards/ops/environments.md`. For each deployed environment, ask:
+
+- The hostnames, nested under the environment label rather than prefixed.
+- Whether the database is rebuilt on every deploy or persists. Test is rebuilt,
+  acceptance persists. Getting this backwards costs you either reproducibility or
+  realism, and you will not notice which until you need it.
+- Whether it has its own application registration at the identity provider. It has to.
+  One registration shared across environments means a test token that production accepts.
+- Who approves a deploy to it.
+
+If none of this is decided yet, say so in the project `CLAUDE.md` rather than inventing
+something.
 
 ### 7. Documentation language
 

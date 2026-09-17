@@ -402,7 +402,11 @@ no SDK for it and you can see exactly what is being executed.
 
 ---
 
-## 8. Backups
+## 8. Backups and environments
+
+Every environment gets its own Postgres container, and whether the data survives differs
+per environment. That is in [`environments.md`](environments.md), together with the rule
+that a restore into acceptance is anonymized before anyone can look at it.
 
 A backup that has never been restored is an assumption, not a backup. Record per project:
 
