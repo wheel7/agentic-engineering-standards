@@ -96,14 +96,19 @@ and why.
    its interceptor, and the first migration.
 5. **Containers** per `@.standards/ops/containers.md`: Dockerfile, `.dockerignore`, a
    compose file with the database and a health check.
-6. **CI/CD** per `@.standards/ops/ci-cd.md`: both workflows, with `submodules: recursive`
+6. **CI/CD** per `@.standards/ops/ci-cd.md`: the workflows, with `submodules: recursive`
    in every checkout. CD triggers on a successful CI run, never on push, or a red test
    will not stop a deploy.
-7. **Architecture tests** per `@.standards/dotnet/testing.md`, so the layer rules are
+7. **Branches and protection** per `@.standards/general/git-workflow.md`: `main` and
+   `develop`, both protected, with the required checks on each. Ask whether this project
+   has more than one developer, because that decides whether a review is required or
+   whether the checks carry it alone. Working alone changes who approves, not whether the
+   protection is on.
+8. **Architecture tests** per `@.standards/dotnet/testing.md`, so the layer rules are
    enforced from the first commit rather than from the first review that notices.
-8. **A pull request template** carrying the test evidence block from
+9. **A pull request template** carrying the test evidence block from
    `@.standards/general/testing.md`, in `.github/pull_request_template.md`.
-9. **Project `CLAUDE.md`**: copy the matching template from `@.standards/templates/` and
+10. **Project `CLAUDE.md`**: copy the matching template from `@.standards/templates/` and
    fill in every answer from the questions above. Leave no placeholder behind.
 
 ## Wrapping up

@@ -20,15 +20,21 @@ Two workflows, no more:
 
 | File | Runs on | Does |
 |---|---|---|
-| `.github/workflows/ci.yml` | every pull request and push to `main` | build, test, check, drive the journeys |
-| `.github/workflows/cd.yml` | a successful CI run on `main` | build image, run migrations, deploy, smoke test |
+| `.github/workflows/ci.yml` | every pull request, and pushes to `develop` and `main` | build, test, check, drive the journeys |
+| `.github/workflows/cd.yml` | a successful CI run | build the image, deploy to test |
+| `.github/workflows/promote.yml` | a person, deliberately | deploy an existing image to acceptance or production |
 
-Read that second row carefully. CD does **not** trigger on push. If it did, the two
+Read the second row carefully. CD does **not** trigger on push. If it did, the two
 workflows would run side by side and a failing test would not stop the deploy. Chapter 5
 explains the wiring.
 
-Only split it up further when something really gets added. Five workflows that call each
-other is something nobody reads any more.
+The branches those triggers refer to come from
+[`../general/git-workflow.md`](../general/git-workflow.md): `develop` is what goes live
+next and is the only branch that builds, `main` records what is live. Environments come
+from [`environments.md`](environments.md).
+
+Three files is the ceiling. Five workflows that call each other is something nobody reads
+any more.
 
 ---
 
@@ -40,7 +46,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [develop, main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -218,7 +224,9 @@ journeys can only cover what an anonymous visitor sees.
 
 ## 5. CD
 
-The deploy hangs off the CI run, not off the push.
+The deploy hangs off the CI run, not off the push. A green run on `develop` goes to test
+on its own. A green run on `main` is a hotfix and goes to production, because that is the
+only reason anything lands on `main` from outside this pipeline.
 
 ```yaml
 name: CD
@@ -236,12 +244,14 @@ permissions:
 env:
   # Never github.sha in this workflow. See the warning below.
   SHA: ${{ github.event.workflow_run.head_sha }}
+  BRANCH: ${{ github.event.workflow_run.head_branch }}
 
 jobs:
   image:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main'
+      (github.event.workflow_run.head_branch == 'develop' ||
+       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -264,14 +274,45 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
+  test:
     needs: image
+    if: github.event.workflow_run.head_branch == 'develop'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      sha: ${{ github.event.workflow_run.head_sha }}
+      environment: test
+    secrets: inherit
+
+  production:
+    needs: image
+    if: github.event.workflow_run.head_branch == 'main'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      sha: ${{ github.event.workflow_run.head_sha }}
+      environment: production
+    secrets: inherit
+```
+
+The deploying itself lives in a reusable `deploy.yml`, called here and from the promotion
+workflow, so that migrations, the rollout and the smoke test are written once:
+
+```yaml
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      sha:          { required: true, type: string }
+      environment:  { required: true, type: string }
+
+jobs:
+  deploy:
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ env.SHA }}
+          ref: ${{ inputs.sha }}
           submodules: recursive
 
       - uses: actions/setup-dotnet@v4
@@ -290,22 +331,23 @@ jobs:
           CONNECTION: ${{ secrets.DB_CONNECTION_MIGRATIONS }}
         run: ./migrate --connection "$CONNECTION"
 
-      # Deploy the new image after this. How depends on where it runs.
+      # Roll out ghcr.io/<repo>:${{ inputs.sha }} here.
+      # How depends on where it runs.
 
-  smoke:
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
       - name: The deployed version answers
         run: |
           for attempt in $(seq 1 10); do
-            if curl -fsS "${{ vars.PRODUCTION_URL }}/health/ready"; then
+            if curl -fsS "${{ vars.PUBLIC_URL }}/health/ready"; then
               exit 0
             fi
             sleep 10
           done
           exit 1
 ```
+
+The order is not optional: **migrations first, then the new version**. During a deploy old
+and new run side by side for a moment, so the schema has to cope with both. Hence the
+two-step approach for breaking changes from [`database.md`](database.md).
 
 ### Why the deploy does not trigger on push
 
@@ -316,8 +358,8 @@ itself is what makes the tests a gate instead of a report.
 
 Branch protection is the other half of this and does not replace it. Protection stops a
 failing branch from being merged; the `workflow_run` gate stops a deploy when CI fails on
-`main` anyway, which happens through a flaky test, a difference in the runner, or an
-admin pushing straight to the branch.
+a protected branch anyway, which happens through a flaky test, a difference in the runner,
+or somebody pushing past their own protection.
 
 ### The trap in workflow_run
 
@@ -334,21 +376,11 @@ So, without exception:
 
 Two more things that are easy to miss. `types: [completed]` fires on failure and
 cancellation as well, so the `conclusion == 'success'` guard is what actually does the
-work. And the `head_branch` guard keeps CI runs from pull requests out of it, because
-those carry the PR branch as their head.
+work. And the branch guard keeps CI runs from pull requests out of it, because those
+carry the source branch as their head, not `develop` or `main`.
 
 A workflow only triggers `workflow_run` once its file exists on the default branch, so
 this wiring does nothing until it is merged. Test it by merging it, not by watching a PR.
-
-### The simpler alternative
-
-One workflow with a deploy job that has `needs:` on the test job gives you the same gate
-with none of the sha subtleties, because there is only one run and one commit. The price
-is that the two concerns live in one file and every pull request shows a skipped deploy
-job.
-
-Take that route if the `workflow_run` wiring ever turns out to be more machinery than it
-earns. What is not an option is two workflows that both trigger on push.
 
 ### The smoke test
 
@@ -359,21 +391,81 @@ application unable to start, a health check that never goes ready.
 One `curl` against `/health/ready` from [`containers.md`](containers.md), retried for a
 minute or two, catches that class of failure while you are still looking at the run.
 
-### More than one environment
+---
 
-`environment: production` is what gives you required reviewers and per-environment
-secrets in GitHub. Turn it on before anything is really live, because until you do, the
-deploy job is a script that anyone who can merge has already run.
+## 6. Promotion
 
-The workflow above is the shape for a single deployed environment. With more of them the
-same image is promoted rather than rebuilt: one job per environment, each with its own
-`environment:` and its own approval, all carrying the same tag. A green run on `main`
-goes to test on its own; acceptance and production are deliberate. See
-[`environments.md`](environments.md).
+Acceptance and production are deliberate acts. The same image that CI built for a commit
+on `develop` is rolled out again, never rebuilt, so what serves customers is byte for byte
+what passed the tests.
+
+```yaml
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: The commit to promote. An image must already exist for it.
+        required: true
+      environment:
+        description: Where to
+        required: true
+        type: choice
+        options: [acceptance, production]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  promote:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      sha: ${{ inputs.sha }}
+      environment: ${{ inputs.environment }}
+    secrets: inherit
+
+  record:
+    needs: promote
+    if: inputs.environment == 'production'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Point main at what is live
+        run: git push origin ${{ inputs.sha }}:main
+```
+
+`environment:` on the deploy job is what asks for approval, so a promotion to production
+waits for whoever is listed on that GitHub Environment.
+
+### Why main is fast-forwarded and not merged
+
+That last step moves `main` to the commit that just went live, so `git log main` answers
+what is running without anybody maintaining it.
+
+It is a fast-forward on purpose. A merge commit would give `main` a SHA that no image was
+ever built for, and then the tag on the running container points at a commit that is not
+the one `main` says is live.
+
+**When that push fails, do not force it.** A rejected fast-forward means `main` has a
+commit that `develop` does not: a hotfix that was never merged back. Deploying over it
+would ship the bug you already fixed. Merge `main` into `develop`, let CI run, and promote
+again.
+
+### Why this does not loop
+
+Pushing to `main` triggers CI, which triggers CD, which would deploy again. It does not,
+because a push made with the automatic `GITHUB_TOKEN` does not start a new workflow run.
+That is a deliberate GitHub behavior to stop exactly this recursion.
+
+It also means the opposite is worth knowing: swap that token for a personal access token
+or an App token and the loop comes back.
 
 ---
 
-## 6. Secrets
+## 7. Secrets
 
 - No long-lived cloud keys in GitHub secrets. Use OIDC with a federated credential, so
   that a run gets a short-lived token. That is what `id-token: write` in the permissions
@@ -386,7 +478,7 @@ goes to test on its own; acceptance and production are deliberate. See
 
 ---
 
-## 7. What has to be green before you merge
+## 8. What has to be green before you merge
 
 Set these as required checks in the branch protection of `main`:
 
@@ -403,21 +495,24 @@ Two separate gates, and you want both:
 | Gate | Stops | Set up as |
 |---|---|---|
 | Branch protection | merging a branch whose CI is red | required checks on `main` |
-| `workflow_run` on CD | deploying when CI on `main` is red | the trigger in chapter 5 |
+| `workflow_run` on CD | deploying when CI is red | the trigger in chapter 5 |
 
 What has to be tested before any of this is worth running is in
 [`../general/testing.md`](../general/testing.md).
 
 ---
 
-## 8. Checklist: new repository
+## 9. Checklist: new repository
 
-1. Copy `ci.yml` and `cd.yml` and adjust the project names.
+1. Copy `ci.yml`, `cd.yml`, `deploy.yml` and `promote.yml`, and adjust the project names.
 2. `submodules: recursive` in every checkout, plus the guard step that proves it worked.
 3. CD triggers on `workflow_run`, never on `push`, and every checkout and tag uses
    `head_sha`.
-4. Branch protection on `main` with the checks from chapter 7.
-5. Environment `production` with reviewers and its own secrets.
+4. Branch protection on `main` and `develop` with the checks from chapter 8.
+5. A GitHub Environment per deployed environment, with reviewers on acceptance and
+   production and its own secrets. See [`environments.md`](environments.md).
 6. OIDC set up for the deploy, no static keys.
-7. `PRODUCTION_URL` set as a repository variable, so the smoke test has somewhere to look.
-8. Watch the first deploy manually, including the migration step.
+7. `PUBLIC_URL` set per GitHub Environment, so the smoke test has somewhere to look.
+8. Working alone? Branch protection still applies, and the admin bypass stays unused.
+   See [`../general/git-workflow.md`](../general/git-workflow.md).
+9. Watch the first deploy manually, including the migration step.
