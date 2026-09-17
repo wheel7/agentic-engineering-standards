@@ -62,6 +62,31 @@ translates.
 | Text | `text`, with `HasMaxLength` for validation | In Postgres, `varchar(n)` is not faster than `text`; the length is a rule, not an optimization |
 | Enums | Store as string via `HasConversion<string>()` | Readable in the database, and renumbering the enum breaks nothing |
 
+### Date in a name says nothing about the type
+
+We name date and time columns with a `Date` suffix: `created_date`, `invoice_date`,
+`subscription_end_date`. That reads the way the business talks, which is the rule in
+[`../general/language.md`](../general/language.md), and one suffix everywhere beats two
+competing ones.
+
+The price is that the name no longer tells you which of the first two rows of the table
+above you are looking at. So choose the type deliberately, on what the business actually
+means:
+
+- **The business thinks in days.** A birth date, an invoice date, a contract start date.
+  Column type `date`, property `DateOnly`. There is no time of day to get wrong.
+- **The business means a moment.** The four audit columns, a payment timestamp, when a
+  message was delivered. Column type `timestamptz`, property `DateTime` in UTC.
+
+Getting this backwards is the classic version of this bug. Store a field the business
+reads as a day in a `timestamptz` and the value becomes midnight UTC. A subscription that
+should run to the end of the seventeenth then expires at two in the morning Amsterdam
+time, on a day the customer thinks they still have. Nothing in the column name hints at
+it, and the report that finds it will be a support ticket.
+
+When in doubt, ask whether anyone would ever care about the time of day in that field. If
+not, it is a `date`.
+
 ### Keys
 
 Use `Guid.CreateVersion7()`, not `Guid.NewGuid()`. A version 7 GUID starts with a
@@ -392,7 +417,7 @@ A backup that has never been restored is an assumption, not a backup. Record per
 1. Snake_case follows automatically; do not set column names by hand.
 2. Key via `Guid.CreateVersion7()`.
 3. The entity implements `IAuditableEntity`, so the four audit columns come with it.
-4. Timestamps in UTC, as `timestamptz`.
+4. A day the business reads as a day is `date`; a moment is `timestamptz` in UTC.
 5. Amounts as `numeric(19,4)`.
 6. `HasMaxLength` on text fields that have a limit.
 7. Concurrency token only where concurrent changes really occur.
