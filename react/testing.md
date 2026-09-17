@@ -1,57 +1,57 @@
-# Testen: React
+# Testing: React
 
-> **CONCEPT - nog te reviewen door het team**
+> **DRAFT - still to be reviewed by the team**
 >
-> Hier zijn nog geen afspraken over gemaakt. Beknopte opzet als startpunt.
+> No conventions have been agreed on this yet. A brief setup as a starting point.
 
-Hoort bij [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Belongs with [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
-## 1. Uitgangspunten
+## 1. Principles
 
-- Test wat de gebruiker ziet en doet, niet hoe het component intern werkt.
-  Geen tests op state-variabelen of implementatiedetails; die breken bij elke refactor
-  zonder dat er iets stuk is.
-- Selecteer op toegankelijke eigenschappen (rol, label, tekst), niet op CSS-classes.
-- Netwerkverkeer mock je op het niveau van de HTTP-laag, niet door je eigen modules
-  te vervangen.
+- Test what the user sees and does, not how the component works internally.
+  No tests on state variables or implementation details; those break on every refactor
+  without anything being broken.
+- Select on accessible properties (role, label, text), not on CSS classes.
+- Mock network traffic at the level of the HTTP layer, not by replacing your own
+  modules.
 
-## 2. Voorgestelde opzet
+## 2. Proposed setup
 
-| Soort | Waarmee | Wat |
+| Kind | With what | What |
 |---|---|---|
-| Unit / component | Vitest + React Testing Library | Rendert het, reageert het op interactie |
-| API-mocking | MSW (Mock Service Worker) | Requests onderscheppen zonder je eigen code te mocken |
-| End-to-end | Playwright | De paar kritieke gebruikersstromen |
+| Unit / component | Vitest + React Testing Library | Does it render, does it respond to interaction |
+| API mocking | MSW (Mock Service Worker) | Intercept requests without mocking your own code |
+| End-to-end | Playwright | The few critical user flows |
 
-Zwaartepunt op componenttests. E2E alleen voor stromen die echt niet stuk mogen; die
-zijn traag en breken makkelijk.
+The emphasis is on component tests. E2E only for flows that really must not break; those
+are slow and brittle.
 
-## 3. Voorbeeld (indicatief)
+## 3. Example (indicative)
 
 ```tsx
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TodoList } from './TodoList';
 
-test('toont todos en markeert er een als voltooid', async () => {
-  render(<TodoList todos={[{ id: '1', title: 'Boodschappen', isCompleted: false }]} />);
+test('shows todos and marks one as completed', async () => {
+  render(<TodoList todos={[{ id: '1', title: 'Buy groceries', isCompleted: false }]} />);
 
-  expect(screen.getByText('Boodschappen')).toBeInTheDocument();
+  expect(screen.getByText('Buy groceries')).toBeInTheDocument();
 
-  await userEvent.click(screen.getByRole('checkbox', { name: /boodschappen/i }));
+  await userEvent.click(screen.getByRole('checkbox', { name: /buy groceries/i }));
 
-  expect(screen.getByRole('checkbox', { name: /boodschappen/i })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: /buy groceries/i })).toBeChecked();
 });
 ```
 
-## 4. Open punten
+## 4. Open questions
 
-- [ ] Vitest of Jest? (Vitest ligt voor de hand bij Vite, maar dat hangt van de
-      frameworkkeuze in `ARCHITECTURE.md` af.)
-- [ ] Zetten we MSW in, of mocken we de datalaag?
-- [ ] Doen we E2E, en zo ja: welke stromen en waar draaien ze?
-- [ ] Hanteren we een dekkingsnorm, of sturen we op review?
-- [ ] Hebben we een React-equivalent van de .NET-architectuurtests nodig
-      (bijvoorbeeld ESLint-regels op import-grenzen tussen features)?
+- [ ] Vitest or Jest? (Vitest is the obvious choice with Vite, but that depends on the
+      framework choice in `ARCHITECTURE.md`.)
+- [ ] Do we bring in MSW, or do we mock the data layer?
+- [ ] Do we do E2E, and if so: which flows and where do they run?
+- [ ] Do we hold to a coverage standard, or do we steer on review?
+- [ ] Do we need a React equivalent of the .NET architecture tests
+      (for example ESLint rules on import boundaries between features)?

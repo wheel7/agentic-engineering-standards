@@ -1,88 +1,100 @@
-# CLAUDE.md - <PROJECTNAAM>
+# CLAUDE.md - <PROJECT NAME>
 
 <!--
-Kopieer dit bestand naar de root van je React-project als CLAUDE.md.
+Copy this file to the root of your React project as CLAUDE.md.
 
-Voorwaarde: de standaarden zijn toegevoegd als submodule in .standards
-    git submodule add https://github.com/wheel7/engineering-standards.git .standards
+Precondition: the standards are added as a submodule in .standards
+    git submodule add https://github.com/wheel7/agentic-engineering-standards.git .standards
 
-Houd dit bestand DUN. Alles wat ook voor andere projecten geldt hoort niet hier,
-maar in de engineering-standards repo. Vervang alle <placeholders> hieronder.
+Keep this file THIN. Anything that applies to other projects too does not belong here,
+but in the agentic-engineering-standards repo. Replace all <placeholders> below.
 -->
 
-## Standaarden
+## Standards
 
-Deze gelden voor dit project. Ze staan in de submodule `.standards`; wijzigingen
-daaraan gaan via een PR in die repo, niet hier.
+These apply to this project. They live in the submodule `.standards`; changes to them
+go through a PR in that repo, not here.
 
+@.standards/general/language.md
 @.standards/general/git-workflow.md
 @.standards/general/security.md
 @.standards/general/api-contracts.md
 @.standards/react/ARCHITECTURE.md
 @.standards/react/testing.md
 
-> Let op: de React-standaarden zijn op dit moment **concept**. Wijkt dit project ervan
-> af, noteer dat dan hieronder - dat is waardevolle input voor de review.
+> Note: the React standards are a **draft** at the moment. If this project deviates from
+> them, note that below - that is valuable input for the review.
 
-Bijwerken naar de laatste versie:
+Updating to the latest version:
 
 ```bash
 git submodule update --remote .standards
 ```
 
-Doe dat in een eigen PR, zodat de wijziging in de standaarden zichtbaar is in de diff.
+Do that in a PR of its own, so the change in the standards is visible in the diff.
 
 ---
 
-## Specifiek voor deze repo
+## Specific to this repo
 
-### Domein
+### Language
 
-<!-- Waar gaat deze applicatie over? Welke schermen en begrippen moet je kennen? -->
+<!-- Technical vocabulary is always English. Domain concepts follow the language the
+     business itself uses. See .standards/general/language.md. Decide this once, here,
+     because a team that never decides ends up with both. -->
 
-- **Kernbegrippen**: <...>
-- **Belangrijkste schermen / flows**: <...>
+- **Domain concepts**: <English / Dutch / ...>
+- **Agreed domain terms**: <Polis, Schademelding, ... - the words that must not be translated>
+- **Documentation in this repo**: <English / Dutch>
+- **Commit messages and PRs**: English
 
-### Techniekkeuzes
+### Domain
 
-<!-- De React-standaard laat deze keuzes bewust open. Vul hier in wat DIT project doet. -->
+<!-- What is this application about? Which screens and concepts do you need to know? -->
+
+- **Key concepts**: <...>
+- **Most important screens / flows**: <...>
+
+### Technology choices
+
+<!-- The React standard deliberately leaves these choices open. Fill in what THIS project does. -->
 
 - **Framework / bundler**: <Vite / Next.js / ...>
 - **Routing**: <...>
-- **Server-state / datatoegang**: <TanStack Query / fetch in hooks / ...>
-- **Client-state**: <...>
+- **Server state / data access**: <TanStack Query / fetch in hooks / ...>
+- **Client state**: <...>
 - **Styling**: <Tailwind / CSS Modules / ...>
-- **Formulieren en validatie**: <...>
-- **Componentbibliotheek**: <...>
+- **Forms and validation**: <...>
+- **Component library**: <...>
 
 ### Backend / API
 
-- **API-url lokaal**: <http://localhost:xxxx>
-- **Waar staat de backend-repo**: <...>
-- **Authenticatie**: <hoe logt de frontend in, waar komt het token vandaan>
-- **Wordt de client gegenereerd uit OpenAPI?**: <ja/nee, en met welk commando>
+- **Local API URL**: <http://localhost:xxxx>
+- **Where the backend repo lives**: <...>
+- **Authentication**: <how does the frontend log in, where does the token come from>
+- **Is the client generated from OpenAPI?**: <yes/no, and with which command>
 
-### Lokaal draaien
+### Running locally
 
 ```bash
-# <Vul de commando's in die hier echt werken>
+# <Fill in the commands that actually work here>
 npm install
 npm run dev
 ```
 
-- **URL lokaal**: <http://localhost:5173>
-- **Benodigde omgevingsvariabelen**: <welke, en waar zet je ze - bijv. .env.local>
-- **Tests draaien**: `npm test`
-- **Lint en typecheck**: `npm run lint` / `npx tsc --noEmit`
+- **Local URL**: <http://localhost:5173>
+- **Required environment variables**: <which ones, and where do you set them - e.g. .env.local>
+- **Running tests**: `npm test`
+- **Lint and typecheck**: `npm run lint` / `npx tsc --noEmit`
 
-### Afwijkingen van de standaard
+### Deviations from the standard
 
-<!-- Wijkt dit project bewust af van .standards? Noteer dat hier MET de reden. -->
+<!-- Does this project deliberately deviate from .standards? Note that here WITH the reason. -->
 
-- <Geen bekende afwijkingen.>
+- <No known deviations.>
 
-### Overig
+### Other
 
-<!-- Valkuilen, historisch gegroeide rariteiten, dingen waar iedereen over struikelt. -->
+<!-- Pitfalls, oddities that grew over time, things everyone trips over. -->
 
 - <...>

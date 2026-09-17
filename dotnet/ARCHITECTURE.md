@@ -1,51 +1,51 @@
-# Architectuur: CQRS in .NET 10 (pragmatisch, zonder MediatR)
+# Architecture: CQRS in .NET 10 (pragmatic, without MediatR)
 
-> Commands wijzigen state. Queries lezen state. Simpel, expliciet, testbaar.
+> Commands change state. Queries read state. Simple, explicit, testable.
 
-Dit document beschrijft de standaardarchitectuur voor onze .NET API's. Gebruik het als referentie bij het opzetten van een nieuw project en bij het toevoegen van nieuwe features.
-
----
-
-## 1. Principes
-
-- Scheid **commands** (schrijven) van **queries** (lezen).
-- Houd handlers klein en gefocust: één handler, één verantwoordelijkheid.
-- Vier lagen: **Domain**, **Application**, **Infrastructure**, **Api**.
-- Geen MediatR nodig; handlers zijn gewone C#-classes die via DI worden geïnjecteerd.
-- Geen extra ceremonie: geen generieke pipelines, base classes of marker-interfaces tenzij er echt behoefte aan is.
-
-### Waarom CQRS?
-
-- Elke handler heeft één verantwoordelijkheid.
-- Lees- en schrijfmodellen kunnen onafhankelijk evolueren.
-- Makkelijk te testen en te begrijpen.
-- Duidelijke intentie in de code én in de API.
-
-### Wanneer níet gebruiken?
-
-- De service is klein en heeft weinig endpoints.
-- Het is een prototype of interne tool.
-- Het domein is simpele CRUD zonder businessregels.
-- Het team kent het patroon niet en de deadline is krap.
-
-In die gevallen: begin met een simpele service-class en splits handlers af zodra de complexiteit toeneemt.
+This document describes the standard architecture for our .NET APIs. Use it as a reference when setting up a new project and when adding new features.
 
 ---
 
-## 2. Lagen en afhankelijkheden
+## 1. Principles
 
-| Laag | Verantwoordelijkheid | Mag verwijzen naar |
+- Separate **commands** (writing) from **queries** (reading).
+- Keep handlers small and focused: one handler, one responsibility.
+- Four layers: **Domain**, **Application**, **Infrastructure**, **Api**.
+- No MediatR needed; handlers are plain C# classes injected through DI.
+- No extra ceremony: no generic pipelines, base classes or marker interfaces unless there is a real need for them.
+
+### Why CQRS?
+
+- Every handler has one responsibility.
+- Read and write models can evolve independently.
+- Easy to test and to understand.
+- Clear intent in the code and in the API.
+
+### When not to use it?
+
+- The service is small and has few endpoints.
+- It is a prototype or an internal tool.
+- The domain is simple CRUD without business rules.
+- The team does not know the pattern and the deadline is tight.
+
+In those cases: start with a simple service class and split off handlers as soon as the complexity grows.
+
+---
+
+## 2. Layers and dependencies
+
+| Layer | Responsibility | May reference |
 |---|---|---|
-| **Domain** | Entities en businessregels | niets |
-| **Application** | Commands, queries, handlers, DTO's, interfaces | Domain |
-| **Infrastructure** | EF Core, repositories, externe systemen | Application, Domain |
-| **Api** | Minimal API's, DI, configuratie | Application, Infrastructure |
+| **Domain** | Entities and business rules | nothing |
+| **Application** | Commands, queries, handlers, DTOs, interfaces | Domain |
+| **Infrastructure** | EF Core, repositories, external systems | Application, Domain |
+| **Api** | Minimal APIs, DI, configuration | Application, Infrastructure |
 
-Regel: afhankelijkheden wijzen altijd naar binnen. Domain kent niemand; Application kent geen EF Core.
+Rule: dependencies always point inward. Domain knows nobody; Application knows no EF Core.
 
-Elke laag is een eigen project met de naam `<Product>.<Laag>`, waarbij assembly-naam, root-namespace en mapnaam gelijk zijn. In dit document is het product `TodoApp`. Hoe projecten heten, hoe testprojecten heten en welke optionele projecten er zijn (`.Contracts`, `.Persistence`, `.Migrations`) staat in [`solution-layout.md`](solution-layout.md).
+Every layer is its own project named `<Product>.<Layer>`, where assembly name, root namespace and folder name are identical. In this document the product is `TodoApp`. What projects are called, what test projects are called and which optional projects exist (`.Contracts`, `.Persistence`, `.Migrations`) is in [`solution-layout.md`](solution-layout.md).
 
-### Mappenstructuur
+### Folder structure
 
 ```
 TodoApp.sln
@@ -74,11 +74,11 @@ TodoApp.sln
     └── TodoApp.ArchitectureTests/
 ```
 
-Organiseer binnen een laag per feature (`Todos/`, `Orders/`, ...), niet per technisch type (`Commands/`, `Handlers/`, ...). Technologie is een map binnen Infrastructure (`Data/` voor EF Core), nooit een eigen project.
+Within a layer, organize per feature (`Todos/`, `Orders/`, ...), not per technical type (`Commands/`, `Handlers/`, ...). Technology is a folder inside Infrastructure (`Data/` for EF Core), never its own project.
 
 ---
 
-## 3. Project opzetten
+## 3. Setting up the project
 
 ```bash
 dotnet new sln -n TodoApp
@@ -90,33 +90,33 @@ dotnet new web      -n TodoApp.Api            -o src/TodoApp.Api            -f n
 
 dotnet sln add src/TodoApp.Domain src/TodoApp.Application src/TodoApp.Infrastructure src/TodoApp.Api
 
-# Projectreferenties
+# Project references
 dotnet add src/TodoApp.Application    reference src/TodoApp.Domain
 dotnet add src/TodoApp.Infrastructure reference src/TodoApp.Application src/TodoApp.Domain
 dotnet add src/TodoApp.Api            reference src/TodoApp.Application src/TodoApp.Infrastructure
 ```
 
-`-n` en `-o` krijgen dezelfde naam, zodat assembly, root-namespace en map overeenkomen. Vervang `TodoApp` door de naam van je eigen product.
+`-n` and `-o` get the same name, so that assembly, root namespace and folder match. Replace `TodoApp` with the name of your own product.
 
-### NuGet-packages
+### NuGet packages
 
-Let op: EF Core zit **niet** standaard in de .NET 10 SDK; deze packages moet je zelf toevoegen.
+Note: EF Core is **not** part of the .NET 10 SDK by default; you have to add these packages yourself.
 
 ```bash
-# Infrastructure: EF Core + PostgreSQL provider + snake_case naamgeving
+# Infrastructure: EF Core + PostgreSQL provider + snake_case naming
 dotnet add src/TodoApp.Infrastructure package Npgsql.EntityFrameworkCore.PostgreSQL --version 10.0.*
 dotnet add src/TodoApp.Infrastructure package EFCore.NamingConventions --version 10.0.*
 
-# Api: nodig voor migrations via de CLI
+# Api: needed for migrations through the CLI
 dotnet add src/TodoApp.Api package Microsoft.EntityFrameworkCore.Design --version 10.0.*
 
-# Eenmalig: de dotnet-ef tool
+# One time: the dotnet-ef tool
 dotnet tool install --global dotnet-ef --version 10.*
 ```
 
-Gebruik je de Package Manager Console in Visual Studio, voeg dan ook `Microsoft.EntityFrameworkCore.Tools` toe aan het Api-project.
+If you use the Package Manager Console in Visual Studio, also add `Microsoft.EntityFrameworkCore.Tools` to the Api project.
 
-PostgreSQL is onze standaarddatabase. De afspraken over kolomtypes, sleutels en migrations staan in [`../ops/database.md`](../ops/database.md); lokaal draaien via `docker compose up` staat in [`../ops/containers.md`](../ops/containers.md).
+PostgreSQL is our standard database. The conventions for column types, keys and migrations are in [`../ops/database.md`](../ops/database.md); running locally with `docker compose up` is in [`../ops/containers.md`](../ops/containers.md).
 
 ---
 
@@ -136,7 +136,7 @@ public sealed class Todo
     public bool IsCompleted { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
 
-    // Voor EF Core
+    // For EF Core
     private Todo() { }
 
     public Todo(string title)
@@ -155,11 +155,11 @@ public sealed class Todo
 }
 ```
 
-Regels: private setters, state alleen wijzigen via methodes met betekenisvolle namen, geen publieke parameterloze constructor.
+Rules: private setters, change state only through methods with meaningful names, no public parameterless constructor.
 
-`Guid.CreateVersion7()` in plaats van `Guid.NewGuid()`: die sleutels lopen op in de tijd en houden de index compact. Zie [`../ops/database.md`](../ops/database.md).
+`Guid.CreateVersion7()` instead of `Guid.NewGuid()`: those keys increase over time and keep the index compact. See [`../ops/database.md`](../ops/database.md).
 
-### 4.2 Application: repository-interface
+### 4.2 Application: repository interface
 
 `src/TodoApp.Application/Todos/ITodoRepository.cs`
 
@@ -194,7 +194,7 @@ public sealed class TodoDto
 }
 ```
 
-Geef nooit domain-entities terug vanuit de API; altijd een DTO.
+Never return domain entities from the API; always a DTO.
 
 ### 4.4 Application: command + handler
 
@@ -320,7 +320,7 @@ public sealed class TodoDbContext : DbContext
 }
 ```
 
-### 4.7 Infrastructure: repository-implementatie
+### 4.7 Infrastructure: repository implementation
 
 `src/TodoApp.Infrastructure/Todos/TodoRepository.cs`
 
@@ -351,9 +351,9 @@ public sealed class TodoRepository : ITodoRepository
 }
 ```
 
-Let op: `GetByIdAsync` gebruikt `AsNoTracking()` en is dus bedoeld voor queries. Moet een command een bestaande entity wijzigen (bijv. `MarkCompleted()`), voeg dan een aparte methode toe **zonder** `AsNoTracking()`, anders worden de wijzigingen niet opgeslagen.
+Note: `GetByIdAsync` uses `AsNoTracking()` and is therefore meant for queries. If a command has to change an existing entity (for example `MarkCompleted()`), add a separate method **without** `AsNoTracking()`, otherwise the changes are not saved.
 
-### 4.8 Api: Minimal API-endpoints + DI
+### 4.8 Api: Minimal API endpoints + DI
 
 `src/TodoApp.Api/Program.cs`
 
@@ -427,50 +427,50 @@ dotnet ef migrations add InitialCreate --project src/TodoApp.Infrastructure --st
 dotnet ef database update             --project src/TodoApp.Infrastructure --startup-project src/TodoApp.Api
 ```
 
-`database update` draai je lokaal. Op test en productie gaan migrations via de pipeline en nooit bij het opstarten van de applicatie; zie [`../ops/database.md`](../ops/database.md) en [`../ops/ci-cd.md`](../ops/ci-cd.md).
+You run `database update` locally. On test and production, migrations go through the pipeline and never at application startup; see [`../ops/database.md`](../ops/database.md) and [`../ops/ci-cd.md`](../ops/ci-cd.md).
 
 ---
 
-## 5. Conventies
+## 5. Conventions
 
-| Onderdeel | Naamgeving | Voorbeeld |
+| Part | Naming | Example |
 |---|---|---|
-| Command | `{Werkwoord}{Entity}Command` | `CreateTodoCommand` |
+| Command | `{Verb}{Entity}Command` | `CreateTodoCommand` |
 | Command handler | `{Command}Handler` | `CreateTodoCommandHandler` |
-| Query | `Get{Entity}By{Criterium}Query` | `GetTodoByIdQuery` |
+| Query | `Get{Entity}By{Criterion}Query` | `GetTodoByIdQuery` |
 | Query handler | `{Query}Handler` | `GetTodoByIdQueryHandler` |
 | DTO | `{Entity}Dto` | `TodoDto` |
 | Repository | `I{Entity}Repository` / `{Entity}Repository` | `ITodoRepository` |
 
-Verdere afspraken:
+Further conventions:
 
-- Alle classes zijn `sealed`, tenzij overerving echt nodig is.
-- Commands, queries en DTO's gebruiken `init`-properties.
-- Elke handler heeft één publieke methode: `HandleAsync(request, CancellationToken)`.
-- Geef altijd een `CancellationToken` door, tot en met EF Core.
-- Commands mogen state wijzigen en roepen `SaveChangesAsync` aan; queries nooit.
-- Queries gebruiken `AsNoTracking()`.
-- Endpoints bevatten geen logica: request binnen, handler aanroepen, HTTP-resultaat terug.
-
----
-
-## 6. Checklist: nieuwe feature toevoegen
-
-1. Entity of gedrag toevoegen in **Domain** (indien nodig).
-2. Repository-methode toevoegen aan de interface in **Application**.
-3. Command of query + handler maken in **Application**.
-4. DTO maken of hergebruiken.
-5. Repository-methode implementeren in **Infrastructure**.
-6. EF-configuratie bijwerken en migration toevoegen (indien nodig).
-7. Handler registreren in `Program.cs` (`AddScoped`).
-8. Endpoint toevoegen in `Program.cs`.
-9. Unit test voor de handler schrijven.
+- All classes are `sealed`, unless inheritance is really needed.
+- Commands, queries and DTOs use `init` properties.
+- Every handler has one public method: `HandleAsync(request, CancellationToken)`.
+- Always pass a `CancellationToken`, all the way down to EF Core.
+- Commands may change state and call `SaveChangesAsync`; queries never do.
+- Queries use `AsNoTracking()`.
+- Endpoints contain no logic: request in, call the handler, HTTP result back.
 
 ---
 
-## 7. Testen
+## 6. Checklist: adding a new feature
 
-Unit tests staan in `tests/TodoApp.Application.UnitTests`; zie [`testing.md`](testing.md) voor de opzet en de architectuurtests. Mock `ITodoRepository` (bijvoorbeeld met Moq), roep `HandleAsync(...)` rechtstreeks aan, controleer het resultaat en verifieer de interacties.
+1. Add an entity or behavior in **Domain** (if needed).
+2. Add a repository method to the interface in **Application**.
+3. Create a command or query + handler in **Application**.
+4. Create or reuse a DTO.
+5. Implement the repository method in **Infrastructure**.
+6. Update the EF configuration and add a migration (if needed).
+7. Register the handler in `Program.cs` (`AddScoped`).
+8. Add the endpoint in `Program.cs`.
+9. Write a unit test for the handler.
+
+---
+
+## 7. Testing
+
+Unit tests live in `tests/TodoApp.Application.UnitTests`; see [`testing.md`](testing.md) for the setup and the architecture tests. Mock `ITodoRepository` (with Moq, for example), call `HandleAsync(...)` directly, check the result and verify the interactions.
 
 ```csharp
 [Fact]
@@ -480,10 +480,10 @@ public async Task CreateTodo_SavesAndReturnsDto()
     var handler = new CreateTodoCommandHandler(repository.Object);
 
     var result = await handler.HandleAsync(
-        new CreateTodoCommand { Title = "Boodschappen" },
+        new CreateTodoCommand { Title = "Buy groceries" },
         CancellationToken.None);
 
-    Assert.Equal("Boodschappen", result.Title);
+    Assert.Equal("Buy groceries", result.Title);
     Assert.False(result.IsCompleted);
     repository.Verify(r => r.AddAsync(It.IsAny<Todo>(), It.IsAny<CancellationToken>()), Times.Once);
     repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -492,19 +492,19 @@ public async Task CreateTodo_SavesAndReturnsDto()
 
 ---
 
-## 8. Wat dit oplevert
+## 8. What you get
 
-- Kleine, gefocuste handlers voor commands en queries.
-- Duidelijke scheiding tussen lees- en schrijflogica.
-- Makkelijk testen met mockbare afhankelijkheden.
-- Een dunne API-laag met Minimal API's.
-- Klaar om te groeien: validatie, logging, transacties of MediatR kunnen later worden toegevoegd.
+- Small, focused handlers for commands and queries.
+- A clear separation between read and write logic.
+- Easy testing with mockable dependencies.
+- A thin API layer with Minimal APIs.
+- Ready to grow: validation, logging, transactions or MediatR can be added later.
 
-## 9. Volgende stappen (wanneer nodig)
+## 9. Next steps (when needed)
 
-1. Validatie toevoegen (handmatig of met FluentValidation).
-2. Logging toevoegen met `ILogger<T>`.
-3. Transacties en outbox-pattern wanneer nodig.
-4. Unit- en integratietests.
+1. Add validation (by hand or with FluentValidation).
+2. Add logging with `ILogger<T>`.
+3. Transactions and the outbox pattern when needed.
+4. Unit and integration tests.
 
-Groei bewust: voeg toe wat je nodig hebt, wanneer je het nodig hebt.
+Grow deliberately: add what you need, when you need it.

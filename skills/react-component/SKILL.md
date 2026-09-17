@@ -1,68 +1,68 @@
 ---
 name: react-component
-description: CONCEPT - voegt een nieuw React-component toe volgens onze (nog niet vastgestelde) frontendarchitectuur. Gebruik deze skill wanneer er een nieuw component, scherm of feature bij moet komen in een React-project, bijvoorbeeld "maak een TodoList-component" of "voeg een scherm toe om orders te tonen". De afspraken hierachter zijn nog niet door het team bevestigd; controleer altijd eerst hoe het bestaande project het doet.
+description: DRAFT - adds a new React component following our (not yet settled) frontend architecture. Use this skill whenever a new component, screen or feature has to be added to a React project, for example "create a TodoList component" or "add a screen to show orders". The conventions behind it have not been confirmed by the team yet; always check first how the existing project does it.
 ---
 
-# Nieuw React-component toevoegen
+# Adding a new React component
 
-> **CONCEPT - nog te reviewen door het team.**
+> **DRAFT - still to be reviewed by the team.**
 >
-> De onderliggende afspraken in `@.standards/react/ARCHITECTURE.md` en
-> `@.standards/react/testing.md` zijn nog concept. Volg bij een conflict altijd wat
-> het bestaande project al doet, en meld de afwijking.
+> The underlying conventions in `@.standards/react/ARCHITECTURE.md` and
+> `@.standards/react/testing.md` are still a draft. On a conflict, always follow what
+> the existing project already does, and report the deviation.
 
-## Vooraf
+## Before you start
 
-1. Lees `.standards/react/ARCHITECTURE.md` en `.standards/react/testing.md`.
-2. Lees het `CLAUDE.md` van het project - daar staat welke keuzes dit project al
-   gemaakt heeft (state, styling, datatoegang).
-3. Kijk naar een vergelijkbaar bestaand component en volg die stijl. Dat weegt zwaarder
-   dan deze skill, zolang de standaard concept is.
-4. Bepaal waar het component hoort: binnen een feature (`src/features/<feature>/`) of
-   gedeeld (`src/components/`). Bij twijfel: begin binnen de feature en verplaats het
-   pas als een tweede feature het nodig heeft.
+1. Read `.standards/react/ARCHITECTURE.md` and `.standards/react/testing.md`.
+2. Read the project's `CLAUDE.md` - it says which choices this project has already
+   made (state, styling, data access).
+3. Look at a comparable existing component and follow that style. That weighs more
+   heavily than this skill, as long as the standard is a draft.
+4. Decide where the component belongs: inside a feature (`src/features/<feature>/`) or
+   shared (`src/components/`). When in doubt: start inside the feature and only move it
+   once a second feature needs it.
 
-## Stappen
+## Steps
 
-### 1. Plaatsing en naamgeving
+### 1. Placement and naming
 
 - Component in PascalCase: `TodoList.tsx`.
-- Hook in camelCase met `use`-prefix: `useTodos.ts`.
-- Een feature importeert niet rechtstreeks uit een andere feature.
+- Hook in camelCase with a `use` prefix: `useTodos.ts`.
+- A feature does not import directly from another feature.
 
-### 2. Props en types
+### 2. Props and types
 
-- TypeScript, expliciete props-type, geen `any`.
-- Types van de feature in `types.ts`; alleen exporteren wat naar buiten nodig is.
+- TypeScript, explicit props type, no `any`.
+- Types of the feature in `types.ts`; only export what is needed outside.
 
-### 3. Presentatie en data scheiden
+### 3. Separating presentation and data
 
-- Houd het component zelf zo veel mogelijk presentatie: props erin, UI eruit.
-- Datatoegang (fetch, caching) in een hook of in `api.ts` van de feature, niet
-  verspreid door het component.
-- Gebruik het datatoegangsmechanisme dat dit project al hanteert.
+- Keep the component itself presentation as much as possible: props in, UI out.
+- Data access (fetch, caching) in a hook or in the feature's `api.ts`, not spread
+  through the component.
+- Use the data access mechanism this project already uses.
 
-### 4. Toegankelijkheid
+### 4. Accessibility
 
-- Gebruik semantische elementen (`button`, niet een `div` met `onClick`).
-- Zorg dat interactieve elementen een toegankelijke naam hebben - dat is ook waar de
-  tests op selecteren.
+- Use semantic elements (`button`, not a `div` with `onClick`).
+- Make sure interactive elements have an accessible name - that is also what the
+  tests select on.
 
 ### 5. Test
 
-Zie `@.standards/react/testing.md`. Test wat de gebruiker ziet en doet:
+See `@.standards/react/testing.md`. Test what the user sees and does:
 
-- Selecteer op rol, label of tekst - niet op CSS-classes of implementatiedetails.
-- Dek minimaal de belangrijkste interactie af.
+- Select on role, label or text - not on CSS classes or implementation details.
+- Cover at least the most important interaction.
 
-### 6. Exporteren
+### 6. Exporting
 
-Neem het component op in de `index.ts` van de feature als het daarbuiten gebruikt wordt.
+Include the component in the feature's `index.ts` if it is used outside the feature.
 
-## Afronden
+## Wrapping up
 
-- Draai de linter, de typecheck (`tsc --noEmit`) en de tests van het project.
-- Meld welke bestanden je hebt toegevoegd.
-- Kwam je een keuze tegen die nog openstaat in `react/ARCHITECTURE.md` (state,
-  styling, formulieren)? Meld dan wat je gekozen hebt en waarom, zodat het team dat
-  kan meenemen in de review van de standaard.
+- Run the project's linter, the typecheck (`tsc --noEmit`) and the tests.
+- Report which files you added.
+- Did you run into a choice that is still open in `react/ARCHITECTURE.md` (state,
+  styling, forms)? Then report what you chose and why, so the team can take that along
+  in the review of the standard.

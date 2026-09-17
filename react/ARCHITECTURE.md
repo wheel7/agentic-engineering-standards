@@ -1,64 +1,64 @@
-# Architectuur: React
+# Architecture: React
 
-> **CONCEPT - nog te reviewen door het team**
+> **DRAFT - still to be reviewed by the team**
 >
-> Hier zijn nog geen afspraken over gemaakt. Dit is een eerste, bewust beknopte opzet
-> als startpunt voor die discussie. Volg het niet als vaststaand beleid en breid het
-> niet uit zonder review.
+> No conventions have been agreed on this yet. This is a first, deliberately brief
+> setup as a starting point for that discussion. Do not follow it as settled policy and
+> do not extend it without review.
 
 ---
 
-## 1. Uitgangspunten
+## 1. Principles
 
-- Organiseer **per feature**, niet per technisch type. Dus `features/todos/`, en niet
-  losse mappen `components/`, `hooks/` en `types/` met alles door elkaar.
-  (Dit spiegelt bewust de .NET-kant, zie [`../dotnet/ARCHITECTURE.md`](../dotnet/ARCHITECTURE.md).)
-- Houd componenten klein en gefocust.
-- Scheid **presentatie** (hoe het eruitziet) van **datatoegang** (waar het vandaan komt).
-- Voeg abstracties pas toe als je ze nodig hebt.
+- Organize **by feature**, not by technical type. So `features/todos/`, and not
+  separate `components/`, `hooks/` and `types/` folders with everything mixed together.
+  (This deliberately mirrors the .NET side, see [`../dotnet/ARCHITECTURE.md`](../dotnet/ARCHITECTURE.md).)
+- Keep components small and focused.
+- Separate **presentation** (what it looks like) from **data access** (where it comes from).
+- Only add abstractions once you need them.
 
-## 2. Mappenstructuur
+## 2. Folder structure
 
 ```
 src/
 ├── features/
 │   └── todos/
-│       ├── components/      Componenten van deze feature
-│       ├── api.ts           Datatoegang (fetch / client)
-│       ├── types.ts         Types van deze feature
-│       └── index.ts         Wat de feature naar buiten toe aanbiedt
-├── components/              Gedeelde, feature-onafhankelijke UI
-├── lib/                     Generieke helpers
-└── app/ of routes/          Routing en pagina-opbouw
+│       ├── components/      Components of this feature
+│       ├── api.ts           Data access (fetch / client)
+│       ├── types.ts         Types of this feature
+│       └── index.ts         What the feature exposes to the outside
+├── components/              Shared, feature-independent UI
+├── lib/                     Generic helpers
+└── app/ or routes/          Routing and page structure
 ```
 
-Regel: een feature importeert uit `components/` en `lib/`, maar niet rechtstreeks uit
-een andere feature. Moet dat toch, dan hoort het gedeelde deel omhoog.
+Rule: a feature imports from `components/` and `lib/`, but not directly from another
+feature. If it has to, the shared part belongs one level up.
 
-## 3. Conventies (voorstel)
+## 3. Conventions (proposal)
 
-| Onderdeel | Naamgeving | Voorbeeld |
+| Part | Naming | Example |
 |---|---|---|
 | Component | PascalCase | `TodoList.tsx` |
 | Hook | `use` + camelCase | `useTodos.ts` |
 | Type | PascalCase | `Todo`, `TodoDto` |
 
-- TypeScript, geen `any`.
-- Functiecomponenten met hooks.
-- Props-types expliciet, geen impliciete `any`.
+- TypeScript, no `any`.
+- Function components with hooks.
+- Explicit props types, no implicit `any`.
 
-## 4. Open punten
+## 4. Open questions
 
-Dit moet het team nog beslissen:
+This is still for the team to decide:
 
-- [ ] **Datatoegang**: TanStack Query, RTK Query, of gewoon `fetch` in een hook?
-- [ ] **State**: wat gaat er in server-state, wat in client-state, en met welk hulpmiddel?
-- [ ] **Styling**: Tailwind, CSS Modules, of iets anders?
-- [ ] **Formulieren en validatie**: React Hook Form, Zod?
-- [ ] **Routing**: React Router, of het framework dat we kiezen (Next.js, Vite + router)?
-- [ ] **Componentbibliotheek**: bouwen we zelf, of nemen we er een (shadcn/ui, MUI)?
-- [ ] **Mapstructuur**: past de feature-indeling hierboven bij wat we in praktijk doen?
-- [ ] Hoe sluit dit aan op [`../general/api-contracts.md`](../general/api-contracts.md)?
+- [ ] **Data access**: TanStack Query, RTK Query, or plain `fetch` in a hook?
+- [ ] **State**: what goes into server state, what into client state, and with which tool?
+- [ ] **Styling**: Tailwind, CSS Modules, or something else?
+- [ ] **Forms and validation**: React Hook Form, Zod?
+- [ ] **Routing**: React Router, or the framework we pick (Next.js, Vite + router)?
+- [ ] **Component library**: do we build our own, or do we take one (shadcn/ui, MUI)?
+- [ ] **Folder structure**: does the feature layout above fit what we do in practice?
+- [ ] How does this connect to [`../general/api-contracts.md`](../general/api-contracts.md)?
 
-Zolang deze punten openstaan geldt: kijk naar wat het bestaande project al doet en
-wijk daar niet zonder reden van af.
+While these questions are open: look at what the existing project already does and do
+not deviate from it without a reason.

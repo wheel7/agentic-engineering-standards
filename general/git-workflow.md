@@ -1,48 +1,48 @@
-# Git-workflow
+# Git workflow
 
-> **Nog in te vullen door het team.** Onderstaande koppen geven de structuur; de
-> TODO's zijn de beslissingen die we nog moeten nemen.
+> **Still to be decided by the team.** The headings below give the structure; the
+> TODOs are the decisions we still have to make.
 
-Geldt voor alle projecten, ongeacht stack.
+Applies to every project, whatever the stack.
 
 ---
 
 ## 1. Branching
 
-- TODO: welk model? Trunk-based met korte feature branches, of GitFlow met
-  `develop`/`release`-branches?
-- TODO: naamgeving van branches vastleggen, bijvoorbeeld
-  `feature/<ticket>-korte-omschrijving`, `bugfix/...`, `hotfix/...`.
-- TODO: hoe lang mag een branch openstaan voordat we hem opsplitsen?
-- TODO: wie mag rechtstreeks naar `main` pushen, en onder welke voorwaarden?
+- TODO: which model? Trunk-based with short feature branches, or GitFlow with
+  `develop`/`release` branches?
+- TODO: settle branch naming, for example
+  `feature/<ticket>-short-description`, `bugfix/...`, `hotfix/...`.
+- TODO: how long may a branch stay open before we split it up?
+- TODO: who may push straight to `main`, and under what conditions?
 
-## 2. Commit-berichten
+## 2. Commit messages
 
-- TODO: gebruiken we Conventional Commits (`feat:`, `fix:`, `chore:`)? Zo ja, welke
-  types staan we toe?
-- TODO: Nederlands of Engels in commit-berichten? (Documentatie is Nederlands; voor
-  commits is dat nog niet besloten.)
-- TODO: verwijzen we naar het ticketnummer, en waar - in de titel of de body?
-- TODO: maximale lengte van de titelregel.
+- TODO: do we use Conventional Commits (`feat:`, `fix:`, `chore:`)? If so, which
+  types do we allow?
+- Settled: commit messages and pull requests are English. See
+  [`language.md`](language.md).
+- TODO: do we reference the ticket number, and where - in the title or the body?
+- TODO: maximum length of the title line.
 
 ## 3. Pull requests
 
-- TODO: aantal verplichte reviewers.
-- TODO: merge-strategie: squash, merge commit, of rebase?
-- TODO: welke checks moeten groen zijn voordat je mag mergen (build, tests, linter)?
-- TODO: maximale omvang van een PR - wanneer vragen we om opsplitsen?
-- TODO: gebruiken we een PR-template? Zo ja, wat staat erin?
-- TODO: branch protection rules op `main` instellen.
+- TODO: number of required reviewers.
+- TODO: merge strategy: squash, merge commit, or rebase?
+- TODO: which checks have to be green before you may merge (build, tests, linter)?
+- TODO: maximum size of a PR - when do we ask for a split?
+- TODO: do we use a PR template? If so, what goes in it?
+- TODO: set branch protection rules on `main`.
 
 ## 4. Submodule `.standards`
 
-Dit ligt al wel vast:
+This much is already settled:
 
-- Bijwerken van `.standards` gebeurt via een eigen PR, zodat de wijziging in de
-  standaarden zichtbaar is in de diff. Zie de [README](../README.md).
-- Meng een submodule-update niet met functionele wijzigingen in dezelfde PR.
+- Updating `.standards` happens in its own PR, so that the change in the standards is
+  visible in the diff. See the [README](../README.md).
+- Do not mix a submodule update with functional changes in the same PR.
 
-## 5. Open punten
+## 5. Open questions
 
-- [ ] Hoe gaan we om met langlopende releases en hotfixes op productie?
-- [ ] Taggen en versienummering.
+- [ ] How do we handle long-running releases and hotfixes on production?
+- [ ] Tagging and version numbering.

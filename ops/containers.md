@@ -1,26 +1,26 @@
 # Containers
 
-Hoe we .NET-applicaties in een container verpakken en lokaal draaien. De database die
-erbij hoort staat in [`database.md`](database.md); het bouwen en publiceren van images
+How we package .NET applications in a container and run them locally. The database that
+goes with it is covered in [`database.md`](database.md); building and publishing images
 in [`ci-cd.md`](ci-cd.md).
 
-> Doel: een nieuwe collega kan de repo clonen, `docker compose up` draaien en heeft een
-> werkende applicatie met database. Zonder installatiehandleiding.
+> Goal: a new colleague can clone the repo, run `docker compose up` and has a working
+> application with a database. Without an installation guide.
 
 ---
 
 ## 1. Dockerfile
 
-Eén Dockerfile per entry point, naast het project dat hij bouwt:
-`src/TodoApp.Api/Dockerfile`. De buildcontext is de repository-root, want de build heeft
-alle projecten nodig.
+One Dockerfile per entry point, next to the project it builds:
+`src/TodoApp.Api/Dockerfile`. The build context is the repository root, because the build
+needs all projects.
 
 ```dockerfile
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Eerst alleen de projectbestanden: deze laag wordt hergebruikt zolang
-# er geen package verandert.
+# Only the project files first: this layer is reused as long as
+# no package changes.
 COPY ["src/TodoApp.Domain/TodoApp.Domain.csproj",                 "src/TodoApp.Domain/"]
 COPY ["src/TodoApp.Application/TodoApp.Application.csproj",       "src/TodoApp.Application/"]
 COPY ["src/TodoApp.Infrastructure/TodoApp.Infrastructure.csproj", "src/TodoApp.Infrastructure/"]
@@ -40,32 +40,31 @@ EXPOSE 8080
 ENTRYPOINT ["dotnet", "TodoApp.Api.dll"]
 ```
 
-Waarom het er zo uitziet:
+Why it looks like this:
 
-- **Twee stages.** De SDK-image is ruim een gigabyte en hoort niet op productie. Alleen
-  het publicatieresultaat gaat mee naar de runtime-image.
-- **Csproj-bestanden eerst.** Kopieer je meteen alles, dan draait `restore` bij elke
-  codewijziging opnieuw. Zo alleen wanneer een package verandert.
-- **`--no-restore` bij publish.** Anders herhaalt publish het restore-werk.
-- **Chiseled runtime-image.** Geen shell, geen package manager, veel minder te patchen.
-  Werkt niet als je in de container wilt debuggen; gebruik dan `10.0-noble` zonder
-  chiseled.
-- **`USER $APP_UID`.** De images hebben sinds .NET 8 een niet-root gebruiker ingebouwd.
-  Draaien als root is nergens voor nodig.
-- **Poort 8080.** Sinds .NET 8 de standaard, juist omdat een niet-root proces geen poort
-  onder 1024 mag openen. Overschrijf dit niet.
+- **Two stages.** The SDK image is well over a gigabyte and does not belong on
+  production. Only the publish output goes into the runtime image.
+- **Csproj files first.** If you copy everything at once, `restore` runs again on every
+  code change. This way only when a package changes.
+- **`--no-restore` on publish.** Otherwise publish repeats the restore work.
+- **Chiseled runtime image.** No shell, no package manager, much less to patch. Does not
+  work if you want to debug inside the container; use `10.0-noble` without chiseled in
+  that case.
+- **`USER $APP_UID`.** Since .NET 8 the images have a non-root user built in. There is no
+  reason at all to run as root.
+- **Port 8080.** The default since .NET 8, precisely because a non-root process may not
+  open a port below 1024. Do not override this.
 
-Pin de image op de major-versie (`10.0`), niet op `latest`. Zo krijg je wel patches en
-geen onverwachte .NET-upgrade.
+Pin the image to the major version (`10.0`), not to `latest`. That way you do get patches
+and no unexpected .NET upgrade.
 
 ---
 
 ## 2. .dockerignore
 
-Verplicht, in de repository-root. Zonder dit bestand gaat `bin`, `obj` en
-`node_modules` mee de buildcontext in. Dat is niet alleen traag: een `obj`-map van je
-eigen machine kan de restore in de container laten mislukken met fouten die nergens op
-slaan.
+Required, in the repository root. Without this file, `bin`, `obj` and `node_modules` go
+into the build context. That is not only slow: an `obj` folder from your own machine can
+make the restore in the container fail with errors that make no sense at all.
 
 ```gitignore
 **/bin/
@@ -86,9 +85,9 @@ docker-compose*.yml
 
 ---
 
-## 3. Lokaal draaien met compose
+## 3. Running locally with compose
 
-`docker-compose.yml` in de repository-root:
+`docker-compose.yml` in the repository root:
 
 ```yaml
 services:
@@ -125,84 +124,83 @@ volumes:
   pgdata:
 ```
 
-Aandachtspunten:
+Points to watch:
 
-- **Pin de Postgres-major** op hetzelfde nummer als productie. Een minorverschil is
-  prima, een major niet.
-- **`condition: service_healthy`.** Zonder healthcheck start de API voordat Postgres
-  verbindingen accepteert, en dan crasht hij bij de eerste query.
-- **Named volume** voor de data. Een bind mount naar een Windows-map geeft
-  rechtenproblemen.
-- **Het wachtwoord hierboven is geen secret.** Het geldt alleen voor een wegwerpdatabase
-  op je eigen machine en staat bewust in de repo. Elk ander wachtwoord hoort daar niet;
-  zie [`../general/security.md`](../general/security.md).
+- **Pin the Postgres major** to the same number as production. A minor difference is
+  fine, a major one is not.
+- **`condition: service_healthy`.** Without a healthcheck the API starts before Postgres
+  accepts connections, and then it crashes on the first query.
+- **Named volume** for the data. A bind mount to a Windows folder gives permission
+  problems.
+- **The password above is not a secret.** It only applies to a throwaway database on your
+  own machine and is in the repo on purpose. No other password belongs there;
+  see [`../general/security.md`](../general/security.md).
 
-Dit compose-bestand draait geen migrations. Doe dat lokaal zelf, zie
+This compose file does not run migrations. Do that yourself locally, see
 [`database.md`](database.md).
 
 ---
 
-## 4. Configuratie
+## 4. Configuration
 
-Alles wat per omgeving verschilt komt binnen als omgevingsvariabele. Geneste keys
-schrijf je met een dubbele underscore, want een punt mag niet overal:
+Everything that differs per environment comes in as an environment variable. Nested keys
+are written with a double underscore, because a dot is not allowed everywhere:
 
 ```
 ConnectionStrings__DefaultConnection
 Logging__LogLevel__Default
 ```
 
-`appsettings.json` bevat alleen standaardwaarden die overal gelden. Geen
-omgevingsspecifieke bestanden meebakken in de image: dezelfde image gaat naar test en
-naar productie, alleen de variabelen verschillen.
+`appsettings.json` contains only default values that apply everywhere. Do not bake
+environment-specific files into the image: the same image goes to test and to production,
+only the variables differ.
 
 ---
 
-## 5. Wat een container van de applicatie verwacht
+## 5. What a container expects from the application
 
-- **Logs naar stdout**, gestructureerd als JSON. Niet naar bestanden: die zijn weg zodra
-  de container weg is, en niemand komt erbij.
-- **Health endpoints.** `/health/live` zegt of het proces nog leeft, `/health/ready` of
-  hij verkeer aankan (inclusief databaseverbinding). Een orchestrator herstart op de
-  eerste en stuurt verkeer op basis van de tweede. Eén gecombineerd endpoint leidt tot
-  herstarts omdat de database even traag is.
-- **Netjes afsluiten op SIGTERM.** ASP.NET Core doet dit zelf, maar lopende
-  achtergrondtaken moeten de `CancellationToken` respecteren. Anders breekt een deploy
-  verzoeken af.
-- **Geen state in de container.** Geen uploads op schijf, geen sessies in het geheugen
-  zonder gedeelde store. Een container kan elk moment vervangen worden.
+- **Logs to stdout**, structured as JSON. Not to files: those are gone as soon as the
+  container is gone, and nobody can reach them.
+- **Health endpoints.** `/health/live` says whether the process is still alive,
+  `/health/ready` whether it can handle traffic (including the database connection). An
+  orchestrator restarts on the first and routes traffic based on the second. One combined
+  endpoint leads to restarts because the database is briefly slow.
+- **Shut down cleanly on SIGTERM.** ASP.NET Core does this itself, but running background
+  tasks have to respect the `CancellationToken`. Otherwise a deploy cuts off requests.
+- **No state in the container.** No uploads on disk, no sessions in memory without a
+  shared store. A container can be replaced at any moment.
 
 ---
 
-## 6. Images en tags
+## 6. Images and tags
 
-- Tag op de git-sha: `ghcr.io/wheel7/todoapp:9f3c1ab`. Daarmee weet je altijd precies
-  welke code draait.
-- Gebruik `latest` niet om te deployen. Als extra tag naast de sha mag het.
-- Eén image per entry point. Een `.Worker` naast een `.Api` is een eigen image, geen
-  schakelaar in dezelfde.
-- Dezelfde image gaat naar elke omgeving. Opnieuw bouwen per omgeving betekent dat je op
-  productie iets draait wat je nergens hebt getest.
+- Tag on the git sha: `ghcr.io/wheel7/todoapp:9f3c1ab`. That way you always know exactly
+  which code is running.
+- Do not use `latest` to deploy. As an extra tag next to the sha it is fine.
+- One image per entry point. A `.Worker` next to an `.Api` is its own image, not a switch
+  in the same one.
+- The same image goes to every environment. Rebuilding per environment means you run
+  something on production that you have not tested anywhere.
 
 ---
 
 ## 7. Frontend
 
-Een React-applicatie hoort hier meestal niet in een container. Het bouwresultaat is een
-map met statische bestanden; die zet je op een CDN of static hosting. Een container met
-nginx ervoor is extra onderdeel om te patchen zonder dat het iets oplost.
+A React application usually does not belong in a container here. The build output is a
+folder with static files; you put those on a CDN or on static hosting. A container with
+nginx in front of it is another part to patch without it solving anything.
 
-Draait de frontend wél mee in compose voor lokale ontwikkeling, dan met de dev-server en
-een bind mount, niet met een productiebuild.
+If the frontend does run along in compose for local development, then with the dev server
+and a bind mount, not with a production build.
 
 ---
 
 ## 8. Checklist
 
-1. `Dockerfile` naast het entry point, buildcontext is de root.
-2. `.dockerignore` aanwezig en bijgewerkt.
-3. Runtime-image is chiseled en draait als niet-root op poort 8080.
-4. `docker compose up` geeft een werkende applicatie met database.
-5. Configuratie komt uit omgevingsvariabelen, niet uit meegebakken bestanden.
-6. Logs gaan naar stdout, health endpoints bestaan.
-7. Image is getagd op de git-sha.
+1. `Dockerfile` next to the entry point, build context is the root.
+2. `.dockerignore` present and up to date.
+3. Runtime image is chiseled and runs as non-root on port 8080.
+4. `docker compose up` gives a working application with a database.
+5. Configuration comes from environment variables, not from baked-in files.
+6. Logs go to stdout, health endpoints exist.
+7. Image is tagged on the git sha.

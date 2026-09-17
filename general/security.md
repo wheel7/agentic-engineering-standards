@@ -1,45 +1,45 @@
 # Security
 
-> **Nog in te vullen door het team.** Onderstaande koppen geven de structuur; de
-> TODO's zijn de beslissingen die we nog moeten nemen.
+> **Still to be decided by the team.** The headings below give the structure; the
+> TODOs are the decisions we still have to make.
 
-Geldt voor alle projecten, ongeacht stack.
+Applies to every project, whatever the stack.
 
 ---
 
 ## 1. Secrets
 
-- TODO: waar horen secrets thuis per omgeving (lokaal, test, productie)? Denk aan
-  .NET user-secrets lokaal en een key vault daarbuiten.
-- TODO: vastleggen dat secrets nooit in de repo komen - ook niet in `appsettings.json`,
-  `.env`-bestanden of testdata.
-- TODO: secret scanning aanzetten op de repo's.
-- TODO: procedure als er tóch een secret gelekt is (intrekken, roteren, melden).
-- TODO: hoe vaak roteren we sleutels en certificaten?
+- TODO: where do secrets belong per environment (local, test, production)? Think of
+  .NET user-secrets locally and a key vault everywhere else.
+- TODO: record that secrets never end up in the repo - not in `appsettings.json`,
+  `.env` files or test data either.
+- TODO: turn on secret scanning for the repos.
+- TODO: procedure for when a secret has leaked anyway (revoke, rotate, report).
+- TODO: how often do we rotate keys and certificates?
 
-## 2. Authenticatie en autorisatie
+## 2. Authentication and authorization
 
-- TODO: welke identity provider gebruiken we standaard?
-- TODO: token-afspraken: type, levensduur, waar bewaar je ze in de frontend?
-- TODO: autorisatiemodel: rollen, claims, of policies?
-- TODO: hoe beveiligen we service-to-service verkeer?
-- TODO: afspraken over CORS.
+- TODO: which identity provider do we use by default?
+- TODO: token conventions: type, lifetime, where do you keep them in the frontend?
+- TODO: authorization model: roles, claims, or policies?
+- TODO: how do we secure service-to-service traffic?
+- TODO: conventions for CORS.
 
-## 3. Afhankelijkheden
+## 3. Dependencies
 
-- TODO: gebruiken we Dependabot of Renovate voor updates?
-- TODO: hoe snel moeten kwetsbaarheden opgelost zijn, per ernst?
-- TODO: draaien we `dotnet list package --vulnerable` en `npm audit` in CI?
-- TODO: mag iedereen een nieuwe package toevoegen, of is daar review voor nodig?
+- TODO: do we use Dependabot or Renovate for updates?
+- TODO: how fast do vulnerabilities have to be fixed, per severity?
+- TODO: do we run `dotnet list package --vulnerable` and `npm audit` in CI?
+- TODO: may anyone add a new package, or does that need a review?
 
-## 4. Overige
+## 4. Other
 
-- TODO: invoervalidatie en omgaan met gebruikersinvoer.
-- TODO: wat loggen we wél en wat nooit (geen persoonsgegevens, geen tokens).
-- TODO: hoe lang bewaren we logs, en waar?
-- TODO: security headers in de API en de frontend.
+- TODO: input validation and handling user input.
+- TODO: what do we log and what never (no personal data, no tokens).
+- TODO: how long do we keep logs, and where?
+- TODO: security headers in the API and the frontend.
 
-## 5. Open punten
+## 5. Open questions
 
-- [ ] Doen we periodiek een security review of pentest?
-- [ ] Wie is aanspreekpunt bij een securitymelding?
+- [ ] Do we run a periodic security review or pentest?
+- [ ] Who is the point of contact for a security report?

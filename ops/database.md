@@ -1,15 +1,15 @@
 # Database: PostgreSQL
 
-Hoort bij [`../dotnet/ARCHITECTURE.md`](../dotnet/ARCHITECTURE.md). Die beschrijft hoe
-de persistentielaag in de code zit; dit document beschrijft de afspraken over de
-database zelf en over migrations.
+Belongs with [`../dotnet/ARCHITECTURE.md`](../dotnet/ARCHITECTURE.md). That document
+describes how the persistence layer sits in the code; this one describes the conventions
+for the database itself and for migrations.
 
-> PostgreSQL is de standaard. Wijkt een project daarvan af, dan staat dat met de reden
-> in het `CLAUDE.md` van dat project.
+> PostgreSQL is the standard. If a project deviates from it, that is recorded with the
+> reason in that project's `CLAUDE.md`.
 
-Waarom Postgres: het draait overal hetzelfde (lokaal in een container, in CI, op Azure
-en op een eigen server), er is geen licentie nodig, en de beheerde varianten zijn
-goedkoper dan die van SQL Server. Lokaal draaien staat in
+Why Postgres: it runs the same everywhere (locally in a container, in CI, on Azure and on
+your own server), no license is needed, and the managed variants are cheaper than the SQL
+Server ones. Running it locally is covered in
 [`containers.md`](containers.md).
 
 ---
@@ -21,10 +21,10 @@ dotnet add src/TodoApp.Infrastructure package Npgsql.EntityFrameworkCore.Postgre
 dotnet add src/TodoApp.Infrastructure package EFCore.NamingConventions --version 10.0.*
 ```
 
-De naamgevingspackage volgt de EF Core-major. Loopt hij achter, zet snake_case dan
-tijdelijk handmatig in `OnModelCreating` en werk de package bij zodra hij uit is.
+The naming package follows the EF Core major. If it lags behind, set snake_case manually
+in `OnModelCreating` for the time being and update the package once it is out.
 
-Registratie in `Program.cs`:
+Registration in `Program.cs`:
 
 ```csharp
 builder.Services.AddDbContext<TodoDbContext>(options =>
@@ -35,53 +35,54 @@ builder.Services.AddDbContext<TodoDbContext>(options =>
 
 ---
 
-## 2. Naamgeving in de database
+## 2. Naming in the database
 
-Tabellen en kolommen zijn **snake_case**: `created_at_utc`, niet `CreatedAtUtc`.
+Tables and columns are **snake_case**: `created_at_utc`, not `CreatedAtUtc`.
 
-Dit is geen smaak. Postgres vouwt niet-aangehaalde namen om naar kleine letters, dus een
-PascalCase-kolom moet je in elke query aanhalen. Zonder deze conventie wordt
-`select * from "Todos" where "IsCompleted" = false` de norm en klaagt iedereen die ooit
-handmatig in de database kijkt. In C# blijft alles gewoon PascalCase; de package vertaalt.
+This is not a matter of taste. Postgres folds unquoted names to lower case, so a
+PascalCase column has to be quoted in every query. Without this convention,
+`select * from "Todos" where "IsCompleted" = false` becomes the norm and everyone who ever
+looks in the database by hand complains. In C# everything stays PascalCase; the package
+translates.
 
-- Tabelnamen meervoud (`todos`), kolomnamen enkelvoud.
-- Geen prefixen als `tbl_` of `fk_` in tabelnamen.
-- Indexen en constraints laten we door EF Core benoemen, tenzij er een goede reden is.
+- Table names plural (`todos`), column names singular.
+- No prefixes like `tbl_` or `fk_` in table names.
+- We let EF Core name indexes and constraints, unless there is a good reason not to.
 
 ---
 
-## 3. Types en kolommen
+## 3. Types and columns
 
-| Onderwerp | Afspraak | Waarom |
+| Topic | Convention | Why |
 |---|---|---|
-| Datum en tijd | `DateTime` met `Kind.Utc`, kolomtype `timestamptz` | Npgsql gooit een exception bij een niet-UTC `DateTime`, dus de fout komt meteen naar boven in plaats van maanden later |
-| Datum zonder tijd | `DateOnly`, kolomtype `date` | Geen middernacht-verschuiving door tijdzones |
-| Primaire sleutel | `Guid` via `Guid.CreateVersion7()` | Zie hieronder |
-| Bedragen | `decimal`, kolomtype `numeric(19,4)` | `float` en `double` ronden geld verkeerd af |
-| Tekst | `text`, met `HasMaxLength` voor validatie | In Postgres is `varchar(n)` niet sneller dan `text`; de lengte is een regel, geen optimalisatie |
-| Enums | Opslaan als string via `HasConversion<string>()` | Leesbaar in de database, en hernummeren van de enum breekt niets |
+| Date and time | `DateTime` with `Kind.Utc`, column type `timestamptz` | Npgsql throws an exception on a non-UTC `DateTime`, so the mistake surfaces right away instead of months later |
+| Date without time | `DateOnly`, column type `date` | No midnight shift caused by time zones |
+| Primary key | `Guid` via `Guid.CreateVersion7()` | See below |
+| Amounts | `decimal`, column type `numeric(19,4)` | `float` and `double` round money wrong |
+| Text | `text`, with `HasMaxLength` for validation | In Postgres, `varchar(n)` is not faster than `text`; the length is a rule, not an optimization |
+| Enums | Store as string via `HasConversion<string>()` | Readable in the database, and renumbering the enum breaks nothing |
 
-### Sleutels
+### Keys
 
-Gebruik `Guid.CreateVersion7()`, niet `Guid.NewGuid()`. Een versie 7-GUID begint met een
-tijdstempel en is daardoor oplopend. Willekeurige versie 4-GUID's schrijven overal in de
-index, wat de index opblaast en inserts trager maakt naarmate de tabel groeit. Dezelfde
-sleutel, geen extra kosten.
+Use `Guid.CreateVersion7()`, not `Guid.NewGuid()`. A version 7 GUID starts with a
+timestamp and is therefore ascending. Random version 4 GUIDs write all over the index,
+which bloats the index and makes inserts slower as the table grows. Same key, no extra
+cost.
 
 ```csharp
 Id = Guid.CreateVersion7();
 ```
 
-Een oplopende `int` mag ook, maar niet voor iets dat in een URL of een API-response
-terechtkomt: dan lekt het aantal records en kun je andermans records raden.
+An ascending `int` is allowed too, but not for anything that ends up in a URL or an API
+response: that leaks the number of records and lets you guess other people's records.
 
-### Standaardkolommen
+### Standard columns
 
-Elke entity die iets vastlegt wat later te verklaren moet zijn krijgt minimaal
-`CreatedAtUtc`. Voeg `ModifiedAtUtc` toe zodra iets gewijzigd kan worden.
+Every entity that records something that has to be explainable later gets at least
+`CreatedAtUtc`. Add `ModifiedAtUtc` as soon as something can be changed.
 
-Gelijktijdige wijzigingen vang je af met de systeemkolom `xmin`, het Postgres-equivalent
-van `rowversion`:
+Concurrent changes are caught with the system column `xmin`, the Postgres equivalent of
+`rowversion`:
 
 ```csharp
 todo.Property<uint>("xmin")
@@ -89,47 +90,47 @@ todo.Property<uint>("xmin")
     .HasColumnName("xmin");
 ```
 
-Doe dit alleen waar twee gebruikers echt tegelijk dezelfde rij kunnen wijzigen. Overal
-toevoegen levert alleen maar conflicten op die niemand afhandelt.
+Only do this where two users really can change the same row at the same time. Adding it
+everywhere only produces conflicts that nobody handles.
 
-### Zoeken op tekst
+### Searching on text
 
-Postgres is hoofdlettergevoelig. Zoeken op naam of e-mail doe je met `ILIKE`, of je zet
-de kolom op een non-deterministische collatie. Kies per geval en leg het vast in het
-project; `ToLower()` in een `Where` maakt de index onbruikbaar.
+Postgres is case sensitive. Search on name or email with `ILIKE`, or put the column on a
+non-deterministic collation. Choose per case and record it in the project; `ToLower()` in
+a `Where` makes the index unusable.
 
 ---
 
 ## 4. Migrations
 
-- **Eén migration per pull request.** Meer betekent dat de PR te groot is.
-- **Nooit een migration bewerken die al ergens is toegepast.** Ook niet op test.
-  Corrigeren doe je met een nieuwe migration.
-- **Terugrollen doe je vooruit.** Een `Down`-methode die niemand ooit heeft gedraaid is
-  geen vangnet. Bij een fout op productie gaat er een nieuwe migration overheen.
-- **Naamgeving**: beschrijf de wijziging, niet de datum. `AddTodoDueDate`, niet
+- **One migration per pull request.** More means the PR is too big.
+- **Never edit a migration that has already been applied somewhere.** Not on test either.
+  You correct it with a new migration.
+- **You roll back by rolling forward.** A `Down` method that nobody has ever run is not a
+  safety net. When something goes wrong on production, a new migration goes over it.
+- **Naming**: describe the change, not the date. `AddTodoDueDate`, not
   `Update3`.
 
-### Breaking changes in twee stappen
+### Breaking changes in two steps
 
-Een kolom hernoemen of weghalen breekt de draaiende versie tijdens een deploy, want even
-draaien oud en nieuw naast elkaar. Splits het daarom:
+Renaming or dropping a column breaks the running version during a deploy, because old and
+new run side by side for a moment. So split it:
 
-1. **Uitbreiden.** Voeg de nieuwe kolom toe, laat de oude staan, en schrijf naar allebei.
+1. **Expand.** Add the new column, leave the old one, and write to both.
    Deploy.
-2. **Opruimen.** Verwijder de oude kolom en het dubbele schrijven. Deploy.
+2. **Contract.** Remove the old column and the double writing. Deploy.
 
-Twee PR's, twee releases. Dat is de prijs van deployen zonder downtime.
+Two PRs, two releases. That is the price of deploying without downtime.
 
-### Migrations uitvoeren
+### Running migrations
 
-**Niet** bij het opstarten van de applicatie. `Database.Migrate()` in `Program.cs` is
-verleidelijk, maar zodra er twee instanties draaien beginnen die tegelijk, en je hebt
-geen enkele controle over het moment. Bovendien heeft de applicatie dan permanent
-rechten om het schema te wijzigen.
+**Not** at application startup. `Database.Migrate()` in `Program.cs` is tempting, but as
+soon as two instances are running they start at the same time, and you have no control at
+all over the moment. On top of that, the application then permanently has permissions to
+change the schema.
 
-Wel: als aparte stap in de pipeline, vóór de nieuwe versie live gaat. Zie
-[`ci-cd.md`](ci-cd.md). Bouw daarvoor een migratiebundel:
+Instead: as a separate step in the pipeline, before the new version goes live. See
+[`ci-cd.md`](ci-cd.md). Build a migration bundle for it:
 
 ```bash
 dotnet ef migrations bundle \
@@ -139,40 +140,40 @@ dotnet ef migrations bundle \
   -o migrate
 ```
 
-Dat levert één uitvoerbaar bestand op dat je met een connectionstring draait. De runner
-heeft daarvoor geen SDK nodig en je kunt precies zien wat er wordt uitgevoerd.
+That produces a single executable that you run with a connection string. The runner needs
+no SDK for it and you can see exactly what is being executed.
 
 ---
 
-## 5. Toegang en rechten
+## 5. Access and permissions
 
-- De applicatie draait met een gebruiker die alleen data mag lezen en schrijven, niet
-  het schema mag wijzigen. Migrations draaien onder een aparte gebruiker.
-- Connectionstrings staan nooit in de repo. Lokaal in user-secrets of in het
-  compose-bestand, daarbuiten in de secret store van de omgeving. Zie
+- The application runs as a user that may only read and write data, not change the
+  schema. Migrations run under a separate user.
+- Connection strings are never in the repo. Locally in user-secrets or in the compose
+  file, outside of that in the secret store of the environment. See
   [`../general/security.md`](../general/security.md).
-- Ontwikkelaars werken niet op de productiedatabase. Is meekijken nodig, dan op een
-  restore.
+- Developers do not work on the production database. If you need to take a look, do it on
+  a restore.
 
 ---
 
-## 6. Back-ups
+## 6. Backups
 
-Een back-up die nooit is teruggezet is een aanname, geen back-up. Per project vastleggen:
+A backup that has never been restored is an assumption, not a backup. Record per project:
 
-- Hoe vaak, en hoe lang bewaard.
-- Waar de kopie staat, en dat die ergens anders staat dan de database zelf.
-- Wanneer de restore voor het laatst is getest, en door wie.
+- How often, and how long it is kept.
+- Where the copy lives, and that it lives somewhere other than the database itself.
+- When the restore was last tested, and by whom.
 
 ---
 
-## 7. Checklist: nieuwe entity
+## 7. Checklist: new entity
 
-1. Snake_case volgt automatisch; geen kolomnamen handmatig instellen.
-2. Sleutel via `Guid.CreateVersion7()`.
-3. Tijdstempels in UTC, als `timestamptz`.
-4. Bedragen als `numeric(19,4)`.
-5. `HasMaxLength` op tekstvelden die een grens hebben.
-6. Concurrency token alleen waar gelijktijdig wijzigen echt voorkomt.
-7. Eén migration, met een beschrijvende naam.
-8. Breekt de wijziging de draaiende versie? Splits hem in uitbreiden en opruimen.
+1. Snake_case follows automatically; do not set column names by hand.
+2. Key via `Guid.CreateVersion7()`.
+3. Timestamps in UTC, as `timestamptz`.
+4. Amounts as `numeric(19,4)`.
+5. `HasMaxLength` on text fields that have a limit.
+6. Concurrency token only where concurrent changes really occur.
+7. One migration, with a descriptive name.
+8. Does the change break the running version? Split it into an expand step and a contract step.

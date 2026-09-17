@@ -1,30 +1,30 @@
 # CI/CD: GitHub Actions
 
-Hoe we bouwen, testen en uitrollen. Sluit aan op [`containers.md`](containers.md) voor
-de image en [`database.md`](database.md) voor de migrations.
+How we build, test and deploy. Connects to [`containers.md`](containers.md) for the image
+and [`database.md`](database.md) for the migrations.
 
-> Bouw één keer, deploy datzelfde artefact naar elke omgeving.
+> Build once, deploy that same artifact to every environment.
 
-Opnieuw bouwen per omgeving betekent dat de versie op productie nooit precies de versie
-is die je hebt getest. Compileren gebeurt dus één keer, en wat daarna reist is de image
-plus de migratiebundel.
+Rebuilding per environment means the version on production is never exactly the version
+you tested. So compiling happens once, and what travels after that is the image plus the
+migration bundle.
 
-De README noemt tooling als de plek waar afspraken echt worden afgedwongen. Dit document
-is die plek: een regel die niet in een workflow staat, wordt vroeg of laat genegeerd.
+The README names tooling as the place where conventions are really enforced. This document
+is that place: a rule that is not in a workflow gets ignored sooner or later.
 
 ---
 
-## 1. Indeling
+## 1. Layout
 
-Twee workflows, meer niet:
+Two workflows, no more:
 
-| Bestand | Draait op | Doet |
+| File | Runs on | Does |
 |---|---|---|
-| `.github/workflows/ci.yml` | elke pull request en push naar `main` | bouwen, testen, controleren |
-| `.github/workflows/cd.yml` | push naar `main` | image bouwen, migrations draaien, uitrollen |
+| `.github/workflows/ci.yml` | every pull request and push to `main` | build, test, check |
+| `.github/workflows/cd.yml` | push to `main` | build image, run migrations, deploy |
 
-Splits pas verder op als er echt iets bij komt. Vijf workflows die elkaar aanroepen
-leest niemand meer.
+Only split it up further when something really gets added. Five workflows that call each
+other is something nobody reads any more.
 
 ---
 
@@ -53,6 +53,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Standards present
+        run: test -f .standards/README.md
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
@@ -61,40 +64,47 @@ jobs:
       - run: dotnet build --no-restore -c Release
       - run: dotnet test --no-build -c Release --logger trx --results-directory TestResults
 
-      - name: Kwetsbare packages
+      - name: Vulnerable packages
         run: |
           dotnet list package --vulnerable --include-transitive > vuln.txt
           cat vuln.txt
           ! grep -q "has the following vulnerable packages" vuln.txt
 ```
 
-Drie dingen die makkelijk misgaan:
+Three things that easily go wrong:
 
-- **`submodules: recursive` is verplicht.** Onze projecten halen deze standaarden binnen
-  als submodule in `.standards`. Zonder deze regel is die map leeg in CI. Is de
-  submodule-repo privé, dan heeft de checkout ook een token met leesrechten nodig; de
-  standaard `GITHUB_TOKEN` komt niet buiten de eigen repository.
-- **`dotnet list package --vulnerable` geeft exitcode 0**, ook als er kwetsbaarheden
-  zijn. Zonder de `grep` erachter is die stap decoratie. Dit vult meteen een van de
-  open punten in [`../general/security.md`](../general/security.md).
-- **`concurrency` met `cancel-in-progress`.** Anders draaien er drie builds van dezelfde
-  branch naast elkaar als je snel achter elkaar pusht.
+- **`submodules: recursive` is required.** A submodule stores no files in the parent
+  repository, only a URL and a commit SHA, and `actions/checkout` does not initialize
+  submodules by default. So `.standards` ends up empty and nothing fails. That silence is
+  the real problem: `dotnet build` does not read markdown, so the build stays green while
+  an agent runs without any of the conventions. It only turns into a hard error the day
+  this repo starts carrying something the build consumes, such as a shared
+  `Directory.Build.props`. The guard step below turns it back into a loud failure.
+  `true` is enough here; `recursive` only matters with nested submodules. If the
+  submodule repo is private, the checkout also needs a token that can read both
+  repositories, because the default `GITHUB_TOKEN` is scoped to the repository the
+  workflow runs in.
+- **`dotnet list package --vulnerable` returns exit code 0**, even when there are
+  vulnerabilities. Without the `grep` behind it, that step is decoration. This immediately
+  fills in one of the open questions in [`../general/security.md`](../general/security.md).
+- **`concurrency` with `cancel-in-progress`.** Otherwise three builds of the same branch
+  run side by side when you push several times in quick succession.
 
-Pin actions op een major-tag zoals hierboven, of op een commit-SHA als je strenger wilt
-zijn. Controleer bij het aanmaken van een workflow welke major actueel is.
+Pin actions to a major tag as above, or to a commit SHA if you want to be stricter. When
+you create a workflow, check which major is current.
 
 ---
 
-## 3. Integratietests
+## 3. Integration tests
 
-Gebruik **Testcontainers** met hetzelfde Postgres-image als in
-[`containers.md`](containers.md). De test start de database zelf, dus de workflow heeft
-geen service-container nodig en het werkt lokaal precies hetzelfde. Op de
-GitHub-runners is Docker aanwezig.
+Use **Testcontainers** with the same Postgres image as in
+[`containers.md`](containers.md). The test starts the database itself, so the workflow
+needs no service container and it works exactly the same locally. Docker is present on
+the GitHub runners.
 
-Dit beslist de openstaande vraag in [`../dotnet/testing.md`](../dotnet/testing.md): geen
-in-memory provider. Die kent geen constraints, geen transacties en geen SQL, dus tests
-slagen daar terwijl productie faalt.
+This decides the open question in [`../dotnet/testing.md`](../dotnet/testing.md): no
+in-memory provider. It has no constraints, no transactions and no SQL, so tests pass
+there while production fails.
 
 ---
 
@@ -148,63 +158,63 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Migratiebundel bouwen
+      - name: Build migration bundle
         run: |
           dotnet ef migrations bundle \
             --project src/TodoApp.Infrastructure \
             --startup-project src/TodoApp.Api \
             --self-contained -r linux-x64 -o migrate
 
-      - name: Migrations uitvoeren
+      - name: Run migrations
         env:
           CONNECTION: ${{ secrets.DB_CONNECTION_MIGRATIONS }}
         run: ./migrate --connection "$CONNECTION"
 
-      # Hierna de nieuwe image uitrollen. Hoe, hangt af van waar het draait.
+      # Deploy the new image after this. How depends on where it runs.
 ```
 
-De volgorde is niet vrijblijvend: **migrations eerst, dan de nieuwe versie**. Tijdens een
-deploy draaien oud en nieuw even naast elkaar, dus het schema moet met allebei overweg
-kunnen. Daarom de tweestapsaanpak voor breaking changes uit
+The order is not optional: **migrations first, then the new version**. During a deploy old
+and new run side by side for a moment, so the schema has to cope with both. Hence the
+two-step approach for breaking changes from
 [`database.md`](database.md).
 
-`environment: production` geeft je in GitHub verplichte goedkeurders en aparte secrets
-per omgeving. Zet dat aan voordat er iets echt live staat.
+`environment: production` gives you required reviewers in GitHub and separate secrets per
+environment. Turn that on before anything is really live.
 
 ---
 
 ## 5. Secrets
 
-- Geen langlevende cloudsleutels in GitHub-secrets. Gebruik OIDC met een federated
-  credential, zodat een run een kortlevend token krijgt. Daarvoor staat
-  `id-token: write` in de permissions.
-- Secrets per omgeving via GitHub Environments, niet allemaal op repo-niveau.
-- De migratiegebruiker is een andere dan de applicatiegebruiker. Alleen de deploy-job
-  kent de eerste.
-- `permissions` staat expliciet en zo krap mogelijk in elke workflow. De standaard is
-  ruimer dan je wilt.
+- No long-lived cloud keys in GitHub secrets. Use OIDC with a federated credential, so
+  that a run gets a short-lived token. That is what `id-token: write` in the permissions
+  is for.
+- Secrets per environment via GitHub Environments, not all of them at repository level.
+- The migration user is a different one from the application user. Only the deploy job
+  knows the first.
+- `permissions` is set explicitly and as tightly as possible in every workflow. The
+  default is wider than you want.
 
 ---
 
-## 6. Wat groen moet zijn voordat je mergt
+## 6. What has to be green before you merge
 
-Zet deze als verplichte checks in de branch protection van `main`:
+Set these as required checks in the branch protection of `main`:
 
-- build slaagt
-- alle tests slagen
-- geen kwetsbare packages
+- build succeeds
+- all tests pass
+- no vulnerable packages
 
-Dit hoort bij de open punten in [`../general/git-workflow.md`](../general/git-workflow.md)
-over branch protection en verplichte checks. Zolang die niet ingevuld zijn, is de
-workflow wel aanwezig maar blokkeert hij niets.
+This belongs with the open questions in [`../general/git-workflow.md`](../general/git-workflow.md)
+about branch protection and required checks. As long as those are not filled in, the
+workflow is present but blocks nothing.
 
 ---
 
-## 7. Checklist: nieuwe repository
+## 7. Checklist: new repository
 
-1. `ci.yml` en `cd.yml` overnemen en de projectnamen aanpassen.
-2. `submodules: recursive` in elke checkout.
-3. Branch protection op `main` met de checks uit hoofdstuk 6.
-4. Environment `production` met goedkeurders en eigen secrets.
-5. OIDC ingericht voor de deploy, geen statische sleutels.
-6. Eerste deploy handmatig meekijken, inclusief de migratiestap.
+1. Copy `ci.yml` and `cd.yml` and adjust the project names.
+2. `submodules: recursive` in every checkout, plus the guard step that proves it worked.
+3. Branch protection on `main` with the checks from chapter 6.
+4. Environment `production` with reviewers and its own secrets.
+5. OIDC set up for the deploy, no static keys.
+6. Watch the first deploy manually, including the migration step.

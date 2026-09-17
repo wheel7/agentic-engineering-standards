@@ -1,44 +1,44 @@
-# Solution-layout en projectnaamgeving: .NET
+# Solution layout and project naming: .NET
 
-Hoort bij [`ARCHITECTURE.md`](ARCHITECTURE.md). Die beschrijft de lagen en hoe de code
-erin eruitziet; dit document beschrijft hoe de solution is ingedeeld en hoe projecten,
-assemblies en namespaces heten.
+Goes with [`ARCHITECTURE.md`](ARCHITECTURE.md). That describes the layers and what the
+code inside them looks like; this document describes how the solution is laid out and
+what projects, assemblies and namespaces are called.
 
-> Assembly-naam, root-namespace en mapnaam zijn altijd identiek.
+> Assembly name, root namespace and folder name are always identical.
 
-Dat is de belangrijkste regel. Hij maakt navigeren voorspelbaar en voorkomt dat
-namespaces wegdrijven van de plek waar de bestanden staan.
+That is the most important rule. It makes navigating predictable and stops namespaces
+from drifting away from the place where the files are.
 
 ---
 
-## 1. Het patroon
+## 1. The pattern
 
 ```
-<Product>.<Laag>
+<Product>.<Layer>
 ```
 
-- `<Product>` is de naam van de applicatie of service, bijvoorbeeld `TodoApp` of
-  `Billing`. Geen bedrijfsprefix (`Wheel7.`): dat voegt niets toe en maakt elke
-  namespace langer.
-- `<Laag>` is een van de lagen uit `ARCHITECTURE.md`: `Domain`, `Application`,
+- `<Product>` is the name of the application or service, for example `TodoApp` or
+  `Billing`. No company prefix (`Wheel7.`): it adds nothing and makes every namespace
+  longer.
+- `<Layer>` is one of the layers from `ARCHITECTURE.md`: `Domain`, `Application`,
   `Infrastructure`, `Api`.
-- Lagen zijn enkelvoud: `.Domain`, niet `.Domains`. Meervoud alleen voor iets dat
-  echt een verzameling is (`.Migrations`).
+- Layers are singular: `.Domain`, not `.Domains`. Plural only for something that really
+  is a collection (`.Migrations`).
 
-Waarom niet kale namen als `Domain` of `Application`? Die botsen zodra twee producten
-elkaar referencen of packages delen, `Application` schuurt met framework-types, en een
-architectuurtest die op namespace `"Application"` filtert raakt meer dan je bedoelt.
-Met `TodoApp.Application` is zo'n filter exact.
+Why not bare names like `Domain` or `Application`? They collide as soon as two products
+reference each other or share packages, `Application` rubs against framework types, and
+an architecture test that filters on namespace `"Application"` hits more than you mean.
+With `TodoApp.Application` such a filter is exact.
 
-### Meerdere bounded contexts
+### Multiple bounded contexts
 
-Zit er meer dan één bounded context in één solution, dan komt de context vóór de laag:
-`Shop.Ordering.Domain`, `Shop.Catalog.Domain`. Doe dit alleen als er echt meerdere
-contexts zijn; één product met één context krijgt gewoon `<Product>.<Laag>`.
+If a single solution holds more than one bounded context, the context comes before the
+layer: `Shop.Ordering.Domain`, `Shop.Catalog.Domain`. Only do this when there really are
+multiple contexts; one product with one context gets plain `<Product>.<Layer>`.
 
 ---
 
-## 2. Standaardindeling
+## 2. Standard layout
 
 ```
 TodoApp.sln
@@ -53,109 +53,110 @@ TodoApp.sln
     └── TodoApp.ArchitectureTests/
 ```
 
-Het entry point heet naar wat het is: `.Api`, `.Web`, `.Blazor`, `.Worker`. Een
-solution met een API én een worker heeft dus twee entry points naast elkaar.
+The entry point is named after what it is: `.Api`, `.Web`, `.Blazor`, `.Worker`. A
+solution with an API and a worker therefore has two entry points side by side.
 
-### Testprojecten
+### Test projects
 
-Testprojecten krijgen de naam van het project dat ze testen, plus een suffix dat zegt
-welk soort test het is:
+Test projects take the name of the project they test, plus a suffix that says what kind
+of test it is:
 
-| Suffix | Test | Voorbeeld |
+| Suffix | Test | Example |
 |---|---|---|
-| `.UnitTests` | één class in isolatie, dependencies gemockt | `TodoApp.Application.UnitTests` |
-| `.IntegrationTests` | de echte keten, met host en database | `TodoApp.Api.IntegrationTests` |
-| `.ArchitectureTests` | laagregels en conventies over de hele solution | `TodoApp.ArchitectureTests` |
+| `.UnitTests` | one class in isolation, dependencies mocked | `TodoApp.Application.UnitTests` |
+| `.IntegrationTests` | the real chain, with host and database | `TodoApp.Api.IntegrationTests` |
+| `.ArchitectureTests` | layer rules and conventions across the whole solution | `TodoApp.ArchitectureTests` |
 
-Suffix en geen prefix, zodat een testproject in de Solution Explorer naast het project
-staat dat het test. Een kaal `.Tests` is te weinig zodra je unit- én integratietests
-hebt, en dat moment komt altijd.
+A suffix and not a prefix, so that a test project sits next to the project it tests in
+the Solution Explorer. A bare `.Tests` is not enough once you have both unit and
+integration tests, and that moment always comes.
 
-De architectuurtests testen niet één laag maar de solution, dus daar staat geen laag
-in de naam.
+The architecture tests do not test one layer but the solution, so there is no layer in
+that name.
 
 ---
 
-## 3. Optionele projecten
+## 3. Optional projects
 
-Maak deze alleen aan als de situatie erom vraagt. Een project dat leeg begint "voor
-later" wordt een vergaarbak.
+Only create these when the situation calls for it. A project that starts out empty "for
+later" becomes a dumping ground.
 
-### `.Contracts`: gedeelde types met een .NET-client
+### `.Contracts`: shared types with a .NET client
 
-De standaardindeling is API-only. Komt er een .NET-client bij die dezelfde API
-aanroept (Blazor WebAssembly, een console-tool, een andere service), dan hebben beide
-kanten dezelfde request- en response-types nodig. Die client mag `.Application` en
-`.Domain` niet referencen: dan komen entities en repositories in de browser terecht.
+The standard layout is API-only. If a .NET client is added that calls the same API
+(Blazor WebAssembly, a console tool, another service), both sides need the same request
+and response types. That client must not reference `.Application` and `.Domain`: that
+puts entities and repositories in the browser.
 
-Daar is `.Contracts` voor. De naam zegt wat erin hoort, en daarmee ook wat niet:
+That is what `.Contracts` is for. The name says what belongs in it, and with that also
+what does not:
 
-- **Wel**: request- en response-types, de enums die ze dragen, constanten die meereizen
-  (routes, headernamen).
-- **Niet**: services, extension methods, helpers, interfaces van de applicatielaag.
+- **Yes**: request and response types, the enums they carry, constants that travel with
+  them (routes, header names).
+- **No**: services, extension methods, helpers, interfaces from the application layer.
 
-`.Contracts` heeft geen enkele projectreferentie. De client referencet `.Contracts` en
-niets anders.
+`.Contracts` has no project references at all. The client references `.Contracts` and
+nothing else.
 
-**Wanneer wel, wanneer niet.** Een React-frontend is geen reden voor `.Contracts`: die
-praat JSON en leest het contract uit de OpenAPI-specificatie, zie
-[`../general/api-contracts.md`](../general/api-contracts.md). Pas bij een tweede
-.NET-project dat de API aanroept voer je `.Contracts` in, niet eerder.
+**When to and when not to.** A React frontend is no reason for `.Contracts`: it speaks
+JSON and reads the contract from the OpenAPI specification, see
+[`../general/api-contracts.md`](../general/api-contracts.md). You introduce `.Contracts`
+only when a second .NET project calls the API, not earlier.
 
-**Gevolg voor het CQRS-patroon.** `ARCHITECTURE.md` bindt het command uit
-`.Application` rechtstreeks als request body in het endpoint. Zodra `.Contracts`
-bestaat kan dat niet meer, want de client mag `.Application` niet kennen. Dan:
+**Consequence for the CQRS pattern.** `ARCHITECTURE.md` binds the command from
+`.Application` directly as the request body in the endpoint. Once `.Contracts` exists
+that is no longer possible, because the client must not know `.Application`. So:
 
-1. Request-types komen in `.Contracts` (`CreateTodoRequest`).
-2. Response-types verhuizen van `.Application` naar `.Contracts` (`TodoDto` of
+1. Request types go in `.Contracts` (`CreateTodoRequest`).
+2. Response types move from `.Application` to `.Contracts` (`TodoDto` or
    `TodoResponse`).
-3. Het endpoint mapt request naar command, in één regel. Dat is nog steeds "geen
-   logica": het is de enige plek waar de twee elkaar raken.
-4. `.Application` referencet `.Contracts` (mag, want `.Contracts` heeft geen
-   dependencies). `.Domain` referencet `.Contracts` niet.
+3. The endpoint maps request to command, in one line. That is still "no logic": it is
+   the only place where the two touch.
+4. `.Application` references `.Contracts` (allowed, because `.Contracts` has no
+   dependencies). `.Domain` does not reference `.Contracts`.
 
-Voeg dan ook een architectuurtest toe: `.Contracts` heeft geen dependency op een
-andere laag.
+Add an architecture test as well: `.Contracts` has no dependency on another layer.
 
-### `.Persistence` en `.Migrations`
+### `.Persistence` and `.Migrations`
 
-Migrations horen bij persistentie. Zolang alleen de applicatie ze uitvoert staan ze in
-`.Infrastructure`, zoals `ARCHITECTURE.md` beschrijft.
+Migrations belong with persistence. As long as only the application runs them, they live
+in `.Infrastructure`, as `ARCHITECTURE.md` describes.
 
-Groeit `.Infrastructure` zo dat EF Core, HTTP-clients en messaging elkaar in de weg
-zitten, splits dan `.Persistence` af voor alles wat met de database te maken heeft.
+If `.Infrastructure` grows to the point where EF Core, HTTP clients and messaging get in
+each other's way, split off `.Persistence` for everything that has to do with the
+database.
 
-Wil je migrations ook los van de applicatie kunnen draaien (in een pipeline, door een
-beheerder), geef ze dan een eigen uitvoerbaar project `.Migrations`. `.Persistence`
-blijft dan een library.
+If you want to run migrations separately from the application as well (in a pipeline, by
+an administrator), give them their own executable project `.Migrations`. `.Persistence`
+then stays a library.
 
-Noem het project naar de taak, niet naar het tool: `.Migrations`, niet `.DbUp`,
-`.FluentMigrator` of `.EfMigrations`. Zie ook de regel over technologienamen hieronder.
+Name the project after the task, not after the tool: `.Migrations`, not `.DbUp`,
+`.FluentMigrator` or `.EfMigrations`. See also the rule about technology names below.
 
 ---
 
-## 4. Namen die we niet gebruiken
+## 4. Names we do not use
 
-| Naam | Waarom niet | Wat dan wel |
+| Name | Why not | What instead |
 |---|---|---|
-| `.Core` | Betekent in elke codebase iets anders: domein, applicatielaag of plumbing. Wij hebben al een naam per laag. | `.Domain` of `.Application`, afhankelijk van wat je bedoelt |
-| `.Common`, `.Shared`, `.Utils`, `.Helpers` | Betekenen niets, dus alles past erin en het project vult zich. | Noem het naar de inhoud: `.Abstractions`, `.Logging`, `.Validation` |
-| `.Extensions` | Extension methods zijn een taalfeature, geen categorie. Dit is hoe `.Utils` opnieuw wordt uitgevonden. | Zet ze bij wat ze uitbreiden: mapping bij de mapping, registratie in het project dat registreert, display-extensies in de UI |
-| `.BLL`, `.DAL` | Dateren de codebase en zeggen niets tegen wie ze niet in 2010 heeft geleerd. | `.Application`, `.Infrastructure` |
-| `.EntityFramework`, `.SqlServer`, `.RabbitMq` | Technologie in een projectnaam betekent projecten hernoemen als je het tool vervangt. | Technologie is een map binnen `.Infrastructure`: `Infrastructure/Data/`, `Infrastructure/Messaging/` |
+| `.Core` | Means something different in every codebase: domain, application layer or plumbing. We already have a name per layer. | `.Domain` or `.Application`, depending on what you mean |
+| `.Common`, `.Shared`, `.Utils`, `.Helpers` | Mean nothing, so everything fits in them and the project fills up. | Name it after the content: `.Abstractions`, `.Logging`, `.Validation` |
+| `.Extensions` | Extension methods are a language feature, not a category. This is how `.Utils` gets reinvented. | Put them with what they extend: mapping with the mapping, registration in the project that registers, display extensions in the UI |
+| `.BLL`, `.DAL` | Date the codebase and say nothing to anyone who did not learn them in 2010. | `.Application`, `.Infrastructure` |
+| `.EntityFramework`, `.SqlServer`, `.RabbitMq` | Technology in a project name means renaming projects when you replace the tool. | Technology is a folder inside `.Infrastructure`: `Infrastructure/Data/`, `Infrastructure/Messaging/` |
 
-Een extension method op een frameworktype die nergens bij past is meestal een teken dat
-de logica ergens concreters hoort.
+An extension method on a framework type that fits nowhere is usually a sign that the
+logic belongs somewhere more concrete.
 
 ---
 
-## 5. Checklist: nieuwe solution
+## 5. Checklist: new solution
 
-1. Kies de productnaam. Kort, zonder bedrijfsprefix, en gelijk aan de naam van de
-   repository als dat kan.
-2. Maak de vier lagen aan als `<Product>.<Laag>` in `src/`. Zie hoofdstuk 3 van
-   `ARCHITECTURE.md` voor de commando's.
-3. Controleer dat assembly-naam, root-namespace en mapnaam gelijk zijn. `dotnet new`
-   met `-n <Product>.<Laag> -o src/<Product>.<Laag>` regelt dat.
-4. Maak testprojecten aan met het juiste suffix in `tests/`.
-5. Voeg geen optioneel project toe totdat de situatie uit hoofdstuk 3 zich voordoet.
+1. Pick the product name. Short, without a company prefix, and the same as the name of
+   the repository if you can.
+2. Create the four layers as `<Product>.<Layer>` in `src/`. See chapter 3 of
+   `ARCHITECTURE.md` for the commands.
+3. Check that assembly name, root namespace and folder name are identical. `dotnet new`
+   with `-n <Product>.<Layer> -o src/<Product>.<Layer>` takes care of that.
+4. Create test projects with the right suffix in `tests/`.
+5. Do not add an optional project until the situation from chapter 3 arises.

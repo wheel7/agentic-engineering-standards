@@ -1,32 +1,32 @@
-# CODEOWNERS - eigenaarschap per map
+# CODEOWNERS - ownership per directory
 #
-# LET OP: onderstaande teams zijn PLACEHOLDERS en moeten nog ingevuld worden met de
-# echte team- of gebruikersnamen van onze organisatie. Zolang dat niet gebeurd is,
-# werkt de automatische reviewer-toewijzing niet.
+# NOTE: the teams below are PLACEHOLDERS and still have to be filled in with the
+# real team or user names of our organization. As long as that has not happened,
+# automatic reviewer assignment does not work.
 #
-# Formaat: <pad> <eigenaar(s)>, bijvoorbeeld @onze-org/backend-team of @gebruikersnaam.
-# Een team moet schrijfrechten op deze repo hebben, anders negeert GitHub de regel.
-# De laatst matchende regel wint, dus specifieke paden onderaan.
+# Format: <path> <owner(s)>, for example @your-org/backend-team or @username.
+# A team has to have write access to this repo, otherwise GitHub ignores the rule.
+# The last matching rule wins, so specific paths at the bottom.
 
-# Fallback: alles zonder specifieke eigenaar
-*                   @jouw-org/tech-leads
+# Fallback: everything without a specific owner
+*                   @your-org/tech-leads
 
-# Stack-onafhankelijke afspraken - raken iedereen, dus breed reviewen
-/general/           @jouw-org/tech-leads
+# Stack-independent conventions - they affect everyone, so review broadly
+/general/           @your-org/tech-leads
 
 # .NET
-/dotnet/            @jouw-org/backend-team
+/dotnet/            @your-org/backend-team
 
 # React
-/react/             @jouw-org/frontend-team
+/react/             @your-org/frontend-team
 
-# Skills - per stack de betreffende eigenaar
-/skills/            @jouw-org/tech-leads
-/skills/dotnet-feature/    @jouw-org/backend-team
-/skills/react-component/   @jouw-org/frontend-team
+# Skills - the relevant owner per stack
+/skills/            @your-org/tech-leads
+/skills/dotnet-feature/    @your-org/backend-team
+/skills/react-component/   @your-org/frontend-team
 
-# Ops - database, containers, CI/CD. Raakt productie, dus breed reviewen.
-/ops/               @jouw-org/tech-leads
+# Ops - database, containers, CI/CD. Touches production, so review broadly.
+/ops/               @your-org/tech-leads
 
-# Templates - wijzigingen hier raken elk project dat ze kopieert
-/templates/         @jouw-org/tech-leads
+# Templates - changes here affect every project that copies them
+/templates/         @your-org/tech-leads

@@ -1,101 +1,100 @@
 ---
 name: dotnet-feature
-description: Voegt een nieuwe feature (command of query) toe aan een .NET 10 API volgens onze CQRS-architectuur zonder MediatR. Gebruik deze skill wanneer er een nieuw endpoint, command, query of handler bij moet komen in een project met de lagen Domain, Application, Infrastructure en Api - bijvoorbeeld "voeg een endpoint toe om een todo af te ronden" of "maak een query om orders per klant op te halen". Niet gebruiken voor het opzetten van een nieuw project of voor wijzigingen die alleen bestaande code aanpassen.
+description: Adds a new feature (command or query) to a .NET 10 API following our CQRS architecture without MediatR. Use this skill whenever a new endpoint, command, query or handler has to be added in a project with the layers Domain, Application, Infrastructure and Api - for example "add an endpoint to complete a todo" or "create a query to fetch orders per customer". Do not use it for setting up a new project or for changes that only modify existing code.
 ---
 
-# Nieuwe .NET-feature toevoegen
+# Adding a new .NET feature
 
-Volgt de architectuur uit `@.standards/dotnet/ARCHITECTURE.md`. Lees dat document als
-je twijfelt over een keuze; deze skill is de uitvoering van de checklist uit
-hoofdstuk 6, niet een vervanging ervan.
+Follows the architecture from `@.standards/dotnet/ARCHITECTURE.md`. Read that document
+if you are in doubt about a choice; this skill is the execution of the checklist from
+chapter 6, not a replacement for it.
 
-`<Product>` in de paden hieronder is de productnaam van de solution, bijvoorbeeld
-`TodoApp` in `src/TodoApp.Domain/`. Zie `@.standards/dotnet/solution-layout.md`.
+`<Product>` in the paths below is the product name of the solution, for example
+`TodoApp` in `src/TodoApp.Domain/`. See `@.standards/dotnet/solution-layout.md`.
 
-## Vooraf
+## Before you start
 
-1. Lees `.standards/dotnet/ARCHITECTURE.md` (met name hoofdstuk 5, conventies) en
-   `.standards/dotnet/solution-layout.md` (projectnamen en paden).
-2. Lees het `CLAUDE.md` van het project voor repo-specifieke afwijkingen.
-3. Bepaal: is dit een **command** (wijzigt state) of een **query** (leest state)?
-   Beide in één handler is geen optie - splits dan.
-4. Kijk naar een bestaande feature in dezelfde repo en volg die stijl. De conventies
-   hieronder gelden, maar het bestaande project wint bij twijfel.
+1. Read `.standards/dotnet/ARCHITECTURE.md` (in particular chapter 5, conventions) and
+   `.standards/dotnet/solution-layout.md` (project names and paths).
+2. Read the project's `CLAUDE.md` for repo-specific deviations.
+3. Determine: is this a **command** (changes state) or a **query** (reads state)?
+   Both in one handler is not an option - split it.
+4. Look at an existing feature in the same repo and follow that style. The conventions
+   below apply, but the existing project wins when in doubt.
 
-## Stappen
+## Steps
 
-Doorloop ze in deze volgorde. Sla stappen die niet van toepassing zijn over, maar
-benoem wel dát je ze overslaat.
+Work through them in this order. Skip steps that do not apply, but do say that you
+are skipping them.
 
 ### 1. Domain
 
-Voeg de entity of het gedrag toe in `src/<Product>.Domain/<Feature>/`.
+Add the entity or the behavior in `src/<Product>.Domain/<Feature>/`.
 
-- Private setters; state wijzigt alleen via methodes met een betekenisvolle naam.
-- Geen publieke parameterloze constructor (wel een private, voor EF Core).
-- Geen verwijzingen naar andere lagen. Domain hangt nergens van af.
+- Private setters; state changes only through methods with a meaningful name.
+- No public parameterless constructor (a private one is fine, for EF Core).
+- No references to other layers. Domain depends on nothing.
 
-### 2. Repository-interface
+### 2. Repository interface
 
-Voeg de benodigde methode toe aan `I<Entity>Repository` in `src/<Product>.Application/<Feature>/`.
+Add the required method to `I<Entity>Repository` in `src/<Product>.Application/<Feature>/`.
 
-- Elke methode krijgt een `CancellationToken`.
-- Moet een command een bestaande entity wijzigen, dan is een aparte methode nodig
-  **zonder** `AsNoTracking()` - anders worden wijzigingen niet opgeslagen.
+- Every method gets a `CancellationToken`.
+- If a command has to change an existing entity, a separate method is needed
+  **without** `AsNoTracking()` - otherwise changes are not saved.
 
-### 3. Command of query + handler
+### 3. Command or query + handler
 
 In `src/<Product>.Application/<Feature>/`:
 
-- Naamgeving: `{Werkwoord}{Entity}Command` / `Get{Entity}By{Criterium}Query`, handler
-  is `{Naam}Handler`.
-- Alles `sealed`, properties met `init`.
-- Eén publieke methode: `HandleAsync(request, CancellationToken)`.
-- Constructor-injectie van de repository, geen service locator.
-- Command: roept `SaveChangesAsync` aan. Query: nooit, en gebruikt `AsNoTracking()`.
+- Naming: `{Verb}{Entity}Command` / `Get{Entity}By{Criterion}Query`, the handler
+  is `{Name}Handler`.
+- Everything `sealed`, properties with `init`.
+- One public method: `HandleAsync(request, CancellationToken)`.
+- Constructor injection of the repository, no service locator.
+- Command: calls `SaveChangesAsync`. Query: never, and uses `AsNoTracking()`.
 
 ### 4. DTO
 
-Hergebruik `{Entity}Dto` als die er is, anders maak je hem in dezelfde map.
-Geef nooit een domain-entity terug vanuit de API.
+Reuse `{Entity}Dto` if it already exists, otherwise create it in the same folder.
+Never return a domain entity from the API.
 
 ### 5. Infrastructure
 
-Implementeer de repository-methode in `src/<Product>.Infrastructure/<Feature>/`.
+Implement the repository method in `src/<Product>.Infrastructure/<Feature>/`.
 
-### 6. EF-configuratie en migration
+### 6. EF configuration and migration
 
-Alleen als het datamodel wijzigt:
+Only if the data model changes:
 
 ```bash
-dotnet ef migrations add <Naam> --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
+dotnet ef migrations add <Name> --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
 ```
 
-Laat het uitvoeren van `database update` aan de gebruiker.
+Leave running `database update` to the user.
 
-### 7. Handler registreren
+### 7. Register the handler
 
-In `src/<Product>.Api/Program.cs`: `builder.Services.AddScoped<{Naam}Handler>();`
+In `src/<Product>.Api/Program.cs`: `builder.Services.AddScoped<{Name}Handler>();`
 
-### 8. Endpoint toevoegen
+### 8. Add the endpoint
 
-Ook in `Program.cs`. Het endpoint bevat **geen logica**: request binnen, handler
-aanroepen, HTTP-resultaat terug.
+Also in `Program.cs`. The endpoint contains **no logic**: request in, call the handler,
+HTTP result back.
 
-- Command: `Results.Created(...)` of `Results.NoContent()`.
-- Query: `Results.Ok(...)`, of `Results.NotFound()` als het resultaat `null` is.
-- Geef de `CancellationToken` door.
+- Command: `Results.Created(...)` or `Results.NoContent()`.
+- Query: `Results.Ok(...)`, or `Results.NotFound()` if the result is `null`.
+- Pass the `CancellationToken` along.
 
 ### 9. Unit test
 
-Zie `@.standards/dotnet/testing.md`. Mock de repository met Moq, roep `HandleAsync`
-direct aan, controleer het resultaat **en** verifieer de interacties (bij een command:
-is er opgeslagen; bij een query: is er níet opgeslagen).
+See `@.standards/dotnet/testing.md`. Mock the repository with Moq, call `HandleAsync`
+directly, check the result **and** verify the interactions (for a command: something
+was saved; for a query: nothing was saved).
 
-## Afronden
+## Wrapping up
 
-- Draai `dotnet build` en `dotnet test`.
-- Loop de conventietabel uit hoofdstuk 5 van ARCHITECTURE.md na.
-- Zijn er architectuurtests, dan moeten die groen zijn - die bewaken de laagregels.
-- Meld welke bestanden je hebt toegevoegd of gewijzigd, en welke stappen je hebt
-  overgeslagen en waarom.
+- Run `dotnet build` and `dotnet test`.
+- Walk through the conventions table in chapter 5 of ARCHITECTURE.md.
+- If there are architecture tests, they must be green - those guard the layer rules.
+- Report which files you added or changed, and which steps you skipped and why.

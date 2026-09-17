@@ -1,20 +1,21 @@
-# CLAUDE.md - <PROJECTNAAM>
+# CLAUDE.md - <PROJECT NAME>
 
 <!--
-Kopieer dit bestand naar de root van je .NET-project als CLAUDE.md.
+Copy this file to the root of your .NET project as CLAUDE.md.
 
-Voorwaarde: de standaarden zijn toegevoegd als submodule in .standards
-    git submodule add https://github.com/wheel7/engineering-standards.git .standards
+Precondition: the standards are added as a submodule in .standards
+    git submodule add https://github.com/wheel7/agentic-engineering-standards.git .standards
 
-Houd dit bestand DUN. Alles wat ook voor andere projecten geldt hoort niet hier,
-maar in de engineering-standards repo. Vervang alle <placeholders> hieronder.
+Keep this file THIN. Anything that applies to other projects too does not belong here,
+but in the agentic-engineering-standards repo. Replace all <placeholders> below.
 -->
 
-## Standaarden
+## Standards
 
-Deze gelden voor dit project. Ze staan in de submodule `.standards`; wijzigingen
-daaraan gaan via een PR in die repo, niet hier.
+These apply to this project. They live in the submodule `.standards`; changes to them
+go through a PR in that repo, not here.
 
+@.standards/general/language.md
 @.standards/general/git-workflow.md
 @.standards/general/security.md
 @.standards/general/api-contracts.md
@@ -25,91 +26,102 @@ daaraan gaan via een PR in die repo, niet hier.
 @.standards/ops/containers.md
 @.standards/ops/ci-cd.md
 
-Bijwerken naar de laatste versie:
+Updating to the latest version:
 
 ```bash
 git submodule update --remote .standards
 ```
 
-Doe dat in een eigen PR, zodat de wijziging in de standaarden zichtbaar is in de diff.
+Do that in a PR of its own, so the change in the standards is visible in the diff.
 
 ---
 
-## Specifiek voor deze repo
+## Specific to this repo
 
 ### Solution
 
-<!-- De productnaam bepaalt de projectnamen: <Product>.Domain, <Product>.Api, enz.
-     Zie .standards/dotnet/solution-layout.md. -->
+<!-- The product name determines the project names: <Product>.Domain, <Product>.Api, etc.
+     See .standards/dotnet/solution-layout.md. -->
 
-- **Productnaam**: <Product>
-- **Entry points**: <Product>.Api <en eventueel .Worker, .Blazor>
+- **Product name**: <Product>
+- **Entry points**: <Product>.Api <and optionally .Worker, .Blazor>
 
-### Domein
+### Language
 
-<!-- Waar gaat deze applicatie over? Welke kernbegrippen moet je kennen?
-     Bijvoorbeeld: entiteiten, hun onderlinge relatie, en de belangrijkste
-     businessregels die niet uit de code af te lezen zijn. -->
+<!-- Technical vocabulary is always English. Domain concepts follow the language the
+     business itself uses. See .standards/general/language.md. Decide this once, here,
+     because a team that never decides ends up with both. -->
 
-- **Kernbegrippen**: <...>
-- **Belangrijkste businessregels**: <...>
-- **Externe systemen waar we mee koppelen**: <...>
+- **Domain concepts**: <English / Dutch / ...>
+- **Agreed domain terms**: <Polis, Schademelding, ... - the words that must not be translated>
+- **Documentation in this repo**: <English / Dutch>
+- **Commit messages and PRs**: English
+
+### Domain
+
+<!-- What is this application about? Which key concepts do you need to know?
+     For example: entities, how they relate to each other, and the most important
+     business rules that cannot be read from the code. -->
+
+- **Key concepts**: <...>
+- **Most important business rules**: <...>
+- **External systems we integrate with**: <...>
 
 ### Database
 
-<!-- Welke database, waar draait die, hoe kom je erbij? -->
+<!-- Which database, where does it run, how do you get to it? -->
 
-- **Type**: PostgreSQL <major-versie, gelijk aan docker-compose.yml en productie>
-- **Connectionstring lokaal**: komt uit `docker-compose.yml`; wijkt dit project daarvan
-  af, noteer dan hier hoe.
+- **Type**: PostgreSQL <major version, same as docker-compose.yml and production>
+- **Local connection string**: comes from `docker-compose.yml`; if this project deviates
+  from that, note here how.
 - **Migrations**:
 
 ```bash
-dotnet ef migrations add <Naam> --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
+dotnet ef migrations add <Name> --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
 dotnet ef database update       --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
 ```
 
-- **Testdata / seeding**: <...>
+- **Test data / seeding**: <...>
 
-### Lokaal draaien
+### Running locally
 
 ```bash
-# Alles in containers, inclusief database:
+# Everything in containers, including the database:
 docker compose up
 
-# Of alleen de database in een container en de API erbuiten:
+# Or only the database in a container and the API outside it:
 docker compose up -d db
 dotnet run --project src/<Product>.Api
 ```
 
-- **URL lokaal**: <https://localhost:xxxx>
-- **Benodigde secrets**: <welke, en hoe zet je ze klaar - bijv. dotnet user-secrets>
-- **Afhankelijkheden die moeten draaien**: <database, message broker, mock-services>
-- **Tests draaien**: `dotnet test`
+- **Local URL**: <https://localhost:xxxx>
+- **Required secrets**: <which ones, and how do you set them up - e.g. dotnet user-secrets>
+- **Dependencies that must be running**: <database, message broker, mock services>
+- **Running tests**: `dotnet test`
 
 ### Hosting
 
-<!-- Waar draait dit, hoe komt het daar, en hoe krijg je het terug als het misgaat?
-     De generieke afspraken staan in .standards/ops/; hier alleen wat per project
-     verschilt. -->
+<!-- Where does this run, how does it get there, and how do you get it back when it goes
+     wrong? The generic conventions are in .standards/ops/; here only what differs
+     per project. -->
 
-- **Draait op**: <Azure Container Apps / eigen server / ...>
-- **Omgevingen**: <test, productie - en de URL's>
-- **Deploy**: <welke workflow, en wat triggert hem>
-- **Terugrollen**: <hoe, en wie mag dat>
-- **Logs en alerting**: <waar kijk je als het misgaat>
-- **Secrets**: <waar staan ze, wie beheert ze>
+- **Runs on**: <Azure Container Apps / own server / ...>
+- **Environments**: <test, production - and the URLs>
+- **Deploy**: <which workflow, and what triggers it>
+- **Rolling back**: <how, and who is allowed to>
+- **Logs and alerting**: <where do you look when it goes wrong>
+- **Secrets**: <where are they, who manages them>
 
-### Afwijkingen van de standaard
+### Deviations from the standard
 
-<!-- Wijkt dit project bewust af van .standards? Noteer dat hier MET de reden.
-     Zonder reden wordt het later per ongeluk "opgelost". Staat hier niets,
-     dan geldt de standaard onverkort. -->
+<!-- Does this project deliberately deviate from .standards? Note that here WITH the reason.
+     Without a reason it gets accidentally "fixed" later on. If nothing is listed here,
+     the standard applies in full. -->
 
-- <Geen bekende afwijkingen.>
+- <No known deviations.>
 
-### Overig
+### Other
 
-<!-- Valkuilen, historisch gegroeide rariteiten, dingen waar iedereen over struikelt. -->
+<!-- Pitfalls, oddities that grew over time, things everyone trips over. -->
 
 - <...>
