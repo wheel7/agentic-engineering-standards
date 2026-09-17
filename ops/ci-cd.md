@@ -20,11 +20,11 @@ Two workflows, no more:
 
 | File | Runs on | Does |
 |---|---|---|
-| `.github/workflows/ci.yml` | every pull request and push to `main` | build, test, check |
+| `.github/workflows/ci.yml` | every pull request and push to `main` | build, test, check, drive the journeys |
 | `.github/workflows/cd.yml` | a successful CI run on `main` | build image, run migrations, deploy, smoke test |
 
 Read that second row carefully. CD does **not** trigger on push. If it did, the two
-workflows would run side by side and a failing test would not stop the deploy. Chapter 4
+workflows would run side by side and a failing test would not stop the deploy. Chapter 5
 explains the wiring.
 
 Only split it up further when something really gets added. Five workflows that call each
@@ -112,7 +112,111 @@ there while production fails.
 
 ---
 
-## 4. CD
+## 4. End-to-end tests
+
+A separate job, so the fast checks still report in under a minute and the browser run
+comes in behind them. It drives the compose stack from
+[`containers.md`](containers.md), which means no deployed environment, no shared state
+and no secrets.
+
+Only relevant to a repository that serves a user interface. An API-only repository has no
+browser journey to drive.
+
+```yaml
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # The database first, so migrations run before anything connects.
+      - name: Start the database
+        run: docker compose up -d --wait db
+
+      - name: Apply migrations
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.*
+          dotnet ef database update \
+            --project src/TodoApp.Infrastructure \
+            --startup-project src/TodoApp.Api
+        env:
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=todoapp;Username=todoapp;Password=localdev"
+
+      - name: Start the application
+        run: docker compose up -d --wait
+
+      - name: Install Playwright
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run the journeys
+        env:
+          BASE_URL: http://localhost:8080
+        run: npx playwright test
+
+      - name: Application logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+```
+
+Why it is shaped like this:
+
+- **`--wait` honors the health checks** from the compose file, so nothing starts talking
+  to Postgres before it accepts connections.
+- **Database, then migrations, then the application.** The same order as a real deploy,
+  see [`database.md`](database.md). Bringing the whole stack up at once means the
+  application starts against a schema that does not exist yet.
+- **Only Chromium.** Three browsers triple the runtime and almost never catch a third
+  thing.
+- **The compose logs on failure.** Without them a failed journey is a timeout and nothing
+  else, and you end up guessing at whether the application even started.
+- **The report as an artifact.** Playwright writes traces and screenshots; they are the
+  difference between fixing the test today and reproducing it for an afternoon.
+- **`down -v`** so the volume goes too and the next run starts from nothing.
+
+Match the Node version to what the project actually uses.
+
+### Still to be decided: authentication in the stack
+
+The compose stack has no identity provider in it, so the journeys have nothing to log in
+against. Three ways out, and none of them is free:
+
+1. A test-only authentication scheme in the application, switched on by configuration.
+   Cheapest, and it puts a bypass in production code. If you take this route, it has to
+   be impossible to enable outside the test configuration, and an architecture test
+   should prove that.
+2. A fake OIDC provider as a fourth container. Clean, and it is a container to keep
+   working.
+3. Point the stack at a real tenant at the provider. Realistic, and it makes CI depend on
+   an external service and on secrets.
+
+Decide this per project and write down which one and why. Until it is decided, the
+journeys can only cover what an anonymous visitor sees.
+
+---
+
+## 5. CD
 
 The deploy hangs off the CI run, not off the push.
 
@@ -257,7 +361,7 @@ minute or two, catches that class of failure while you are still looking at the 
 
 ---
 
-## 5. Secrets
+## 6. Secrets
 
 - No long-lived cloud keys in GitHub secrets. Use OIDC with a federated credential, so
   that a run gets a short-lived token. That is what `id-token: write` in the permissions
@@ -270,7 +374,7 @@ minute or two, catches that class of failure while you are still looking at the 
 
 ---
 
-## 6. What has to be green before you merge
+## 7. What has to be green before you merge
 
 Set these as required checks in the branch protection of `main`:
 
@@ -287,20 +391,20 @@ Two separate gates, and you want both:
 | Gate | Stops | Set up as |
 |---|---|---|
 | Branch protection | merging a branch whose CI is red | required checks on `main` |
-| `workflow_run` on CD | deploying when CI on `main` is red | the trigger in chapter 4 |
+| `workflow_run` on CD | deploying when CI on `main` is red | the trigger in chapter 5 |
 
 What has to be tested before any of this is worth running is in
 [`../general/testing.md`](../general/testing.md).
 
 ---
 
-## 7. Checklist: new repository
+## 8. Checklist: new repository
 
 1. Copy `ci.yml` and `cd.yml` and adjust the project names.
 2. `submodules: recursive` in every checkout, plus the guard step that proves it worked.
 3. CD triggers on `workflow_run`, never on `push`, and every checkout and tag uses
    `head_sha`.
-4. Branch protection on `main` with the checks from chapter 6.
+4. Branch protection on `main` with the checks from chapter 7.
 5. Environment `production` with reviewers and its own secrets.
 6. OIDC set up for the deploy, no static keys.
 7. `PRODUCTION_URL` set as a repository variable, so the smoke test has somewhere to look.

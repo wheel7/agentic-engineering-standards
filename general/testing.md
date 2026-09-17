@@ -26,7 +26,7 @@ ask the author for the things the pipeline cannot check.
 | Integration | the real chain works, with a real database | seconds | every pull request |
 | Component | a React component renders and behaves | milliseconds | every pull request |
 | Contract | frontend and backend agree on the API shape | seconds | every pull request |
-| End-to-end | a user journey works in a browser | minutes | before a release |
+| End-to-end | a user journey works in a browser | minutes | every pull request |
 | Smoke | the deployed version answers | seconds | after every deploy |
 
 **Unit tests** are the bulk. A handler with constructor injection needs no host and no
