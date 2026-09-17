@@ -25,6 +25,7 @@ and imports the rest from here.
 ```
 agentic-engineering-standards/
 ├── README.md
+├── ROADMAP.md          What is still open, and what to revisit when
 ├── CODEOWNERS
 ├── .claude-plugin/     Makes this repo installable as a Claude Code plugin
 │   ├── plugin.json
@@ -215,6 +216,9 @@ request, reviewed by the owner of that folder.
 
 Two rules of thumb:
 
+- What is still open, and the rules that have to be revisited when something changes, are
+  collected in [`ROADMAP.md`](ROADMAP.md). Close an item by moving the answer into the
+  document that owns it and deleting the line there.
 - Something that applies in more than one project belongs here. Something that applies in
   one project belongs in that project's `CLAUDE.md`.
 - Changing a skill reaches installed plugins only when `version` in
