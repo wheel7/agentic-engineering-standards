@@ -33,7 +33,7 @@ goes over the wire.
 ## 3. Dates and times
 
 - TODO: record that everything is UTC and goes out in ISO 8601 (`2026-09-16T14:30:00Z`).
-  The .NET side already uses `CreatedAtUtc`, so that fits.
+  The .NET side stores every timestamp in UTC already, so that fits.
 - TODO: how do we pass a date without a time?
 - TODO: where does the conversion to local time happen - only in the frontend?
 

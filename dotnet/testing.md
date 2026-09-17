@@ -197,6 +197,9 @@ in review. Candidates that are not enforced yet:
 - Commands, queries and DTOs are `sealed` and use `init` properties
 - Domain entities are not returned from the Api layer
 - Once there is a `.Contracts` project: it has no dependency on another layer
+- Every entity mapped by EF Core implements `IAuditableEntity`. Worth enforcing, but
+  scope it carefully: value objects and domain events are not auditable and would fail a
+  naive rule over the whole Domain assembly.
 
 ---
 

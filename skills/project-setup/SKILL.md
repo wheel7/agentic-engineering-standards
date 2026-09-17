@@ -10,7 +10,7 @@ place where the decisions that cannot be derived from code get made and recorded
 
 ## Ask first, scaffold second
 
-Six things cannot be inferred from an empty repository, and all six are expensive to
+Seven things cannot be inferred from an empty repository, and all seven are expensive to
 change later. Ask the developer, one at a time, and do not guess.
 
 Ask the questions in this order, because later answers depend on earlier ones.
@@ -47,13 +47,23 @@ the reason attached, otherwise someone will "fix" it later.
 Ask which major version, because it has to match across the compose file, CI and
 production.
 
-### 5. Hosting
+### 5. Authentication provider
+
+Kinde or Entra ID, and which tenant. Authentication is never built in-house and passwords
+are never stored. See `@.standards/ops/database.md` for the identity model that goes with
+it: our own `users` table keyed by our own UUID, and `user_identities` holding the
+provider and its subject.
+
+Ask for the system user id as well, or decide to generate one. Every row needs a
+`created_by`, including the rows no logged-in person ever creates.
+
+### 6. Hosting
 
 Where does this run, and who deploys it? The answer drives the deploy step of the CD
 workflow. If it is not decided yet, say so in the project `CLAUDE.md` rather than
 inventing something.
 
-### 6. Documentation language
+### 7. Documentation language
 
 The team's call, but it has to be one language. Record it.
 
@@ -68,8 +78,9 @@ and why.
    `.ArchitectureTests`.
 3. **Architecture** per `@.standards/dotnet/ARCHITECTURE.md`: the four layers, the
    project references pointing inwards, one vertical slice as an example.
-4. **Database** per `@.standards/ops/database.md`: Npgsql, snake_case naming, the first
-   migration.
+4. **Database** per `@.standards/ops/database.md`: Npgsql, snake_case naming, the
+   `users` and `user_identities` tables, the seeded system user, `IAuditableEntity` with
+   its interceptor, and the first migration.
 5. **Containers** per `@.standards/ops/containers.md`: Dockerfile, `.dockerignore`, a
    compose file with the database and a health check.
 6. **CI/CD** per `@.standards/ops/ci-cd.md`: both workflows, with `submodules: recursive`

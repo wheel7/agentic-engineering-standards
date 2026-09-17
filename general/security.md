@@ -19,7 +19,9 @@ Applies to every project, whatever the stack.
 
 ## 2. Authentication and authorization
 
-- TODO: which identity provider do we use by default?
+- Settled: authentication runs through an external provider, Kinde or Entra ID, chosen
+  per project. The identity model behind it is in
+  [`../ops/database.md`](../ops/database.md).
 - TODO: token conventions: type, lifetime, where do you keep them in the frontend?
 - TODO: authorization model: roles, claims, or policies?
 - TODO: how do we secure service-to-service traffic?

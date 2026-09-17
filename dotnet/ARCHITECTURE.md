@@ -51,9 +51,15 @@ Every layer is its own project named `<Product>.<Layer>`, where assembly name, r
 TodoApp.sln
 ├── src/
 │   ├── TodoApp.Domain/
+│   │   ├── Auditing/
+│   │   │   └── IAuditableEntity.cs
 │   │   └── Todos/
 │   │       └── Todo.cs
 │   ├── TodoApp.Application/
+│   │   ├── Auditing/
+│   │   │   └── IAuditableDto.cs
+│   │   ├── Identity/
+│   │   │   └── ICurrentUser.cs
 │   │   └── Todos/
 │   │       ├── ITodoRepository.cs
 │   │       ├── TodoDto.cs
@@ -62,8 +68,12 @@ TodoApp.sln
 │   │       ├── GetTodoByIdQuery.cs
 │   │       └── GetTodoByIdQueryHandler.cs
 │   ├── TodoApp.Infrastructure/
+│   │   ├── Auditing/
+│   │   │   └── AuditingInterceptor.cs
 │   │   ├── Data/
 │   │   │   └── TodoDbContext.cs
+│   │   ├── Identity/
+│   │   │   └── CurrentUser.cs
 │   │   └── Todos/
 │   │       └── TodoRepository.cs
 │   └── TodoApp.Api/
@@ -74,7 +84,7 @@ TodoApp.sln
     └── TodoApp.ArchitectureTests/
 ```
 
-Within a layer, organize per feature (`Todos/`, `Orders/`, ...), not per technical type (`Commands/`, `Handlers/`, ...). Technology is a folder inside Infrastructure (`Data/` for EF Core), never its own project.
+Within a layer, organize per feature (`Todos/`, `Orders/`, ...), not per technical type (`Commands/`, `Handlers/`, ...). Technology is a folder inside Infrastructure (`Data/` for EF Core), never its own project. Cross-cutting concerns such as `Auditing/` and `Identity/` get a folder named after what they hold, never one called `Common` or `Shared`.
 
 ---
 
@@ -127,14 +137,20 @@ PostgreSQL is our standard database. The conventions for column types, keys and 
 `src/TodoApp.Domain/Todos/Todo.cs`
 
 ```csharp
+using TodoApp.Domain.Auditing;
+
 namespace TodoApp.Domain.Todos;
 
-public sealed class Todo
+public sealed class Todo : IAuditableEntity
 {
     public Guid Id { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public bool IsCompleted { get; private set; }
-    public DateTime CreatedAtUtc { get; private set; }
+
+    public Guid CreatedBy { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public Guid? ModifiedBy { get; set; }
+    public DateTime? ModifiedDate { get; set; }
 
     // For EF Core
     private Todo() { }
@@ -144,7 +160,6 @@ public sealed class Todo
         Id = Guid.CreateVersion7();
         Title = title;
         IsCompleted = false;
-        CreatedAtUtc = DateTime.UtcNow;
     }
 
     public void MarkCompleted()
@@ -158,6 +173,8 @@ public sealed class Todo
 Rules: private setters, change state only through methods with meaningful names, no public parameterless constructor.
 
 `Guid.CreateVersion7()` instead of `Guid.NewGuid()`: those keys increase over time and keep the index compact. See [`../ops/database.md`](../ops/database.md).
+
+Every entity implements `IAuditableEntity`, which is why the four audit properties are there and why they are the one place with public setters. The constructor does not fill them: a `SaveChanges` interceptor sets who and when, so no handler can forget it. See [`../ops/database.md`](../ops/database.md) for the interface, the interceptor and the user model behind `CreatedBy`.
 
 ### 4.2 Application: repository interface
 
@@ -183,18 +200,24 @@ public interface ITodoRepository
 `src/TodoApp.Application/Todos/TodoDto.cs`
 
 ```csharp
+using TodoApp.Application.Auditing;
+
 namespace TodoApp.Application.Todos;
 
-public sealed class TodoDto
+public sealed class TodoDto : IAuditableDto
 {
     public Guid Id { get; init; }
     public string Title { get; init; } = string.Empty;
     public bool IsCompleted { get; init; }
-    public DateTime CreatedAtUtc { get; init; }
+
+    public Guid CreatedBy { get; init; }
+    public DateTime CreatedDate { get; init; }
+    public Guid? ModifiedBy { get; init; }
+    public DateTime? ModifiedDate { get; init; }
 }
 ```
 
-Never return domain entities from the API; always a DTO.
+Never return domain entities from the API; always a DTO. A DTO that represents an auditable entity implements `IAuditableDto`, so the audit values travel in the same shape everywhere.
 
 ### 4.4 Application: command + handler
 
@@ -237,7 +260,10 @@ public sealed class CreateTodoCommandHandler
             Id = todo.Id,
             Title = todo.Title,
             IsCompleted = todo.IsCompleted,
-            CreatedAtUtc = todo.CreatedAtUtc
+            CreatedBy = todo.CreatedBy,
+            CreatedDate = todo.CreatedDate,
+            ModifiedBy = todo.ModifiedBy,
+            ModifiedDate = todo.ModifiedDate
         };
     }
 }
@@ -283,7 +309,10 @@ public sealed class GetTodoByIdQueryHandler
             Id = todo.Id,
             Title = todo.Title,
             IsCompleted = todo.IsCompleted,
-            CreatedAtUtc = todo.CreatedAtUtc
+            CreatedBy = todo.CreatedBy,
+            CreatedDate = todo.CreatedDate,
+            ModifiedBy = todo.ModifiedBy,
+            ModifiedDate = todo.ModifiedDate
         };
     }
 }
@@ -359,6 +388,7 @@ Note: `GetByIdAsync` uses `AsNoTracking()` and is therefore meant for queries. I
 
 ```csharp
 using TodoApp.Application.Todos;
+using TodoApp.Infrastructure.Auditing;
 using TodoApp.Infrastructure.Data;
 using TodoApp.Infrastructure.Todos;
 using Microsoft.EntityFrameworkCore;
@@ -366,10 +396,14 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
-builder.Services.AddDbContext<TodoDbContext>(options =>
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<AuditingInterceptor>();
+
+builder.Services.AddDbContext<TodoDbContext>((sp, options) =>
     options
         .UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
-        .UseSnakeCaseNamingConvention());
+        .UseSnakeCaseNamingConvention()
+        .AddInterceptors(sp.GetRequiredService<AuditingInterceptor>()));
 
 // Repositories
 builder.Services.AddScoped<ITodoRepository, TodoRepository>();
@@ -456,10 +490,10 @@ Further conventions:
 
 ## 6. Checklist: adding a new feature
 
-1. Add an entity or behavior in **Domain** (if needed).
+1. Add an entity or behavior in **Domain** (if needed). An entity implements `IAuditableEntity`.
 2. Add a repository method to the interface in **Application**.
 3. Create a command or query + handler in **Application**.
-4. Create or reuse a DTO.
+4. Create or reuse a DTO. One that exposes an auditable entity implements `IAuditableDto`.
 5. Implement the repository method in **Infrastructure**.
 6. Update the EF configuration and add a migration (if needed).
 7. Register the handler in `Program.cs` (`AddScoped`).

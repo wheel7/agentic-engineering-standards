@@ -67,6 +67,16 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 - **Most important business rules**: <...>
 - **External systems we integrate with**: <...>
 
+### Authentication
+
+<!-- Authentication runs through an external provider. The identity model, the users and
+     user_identities tables and the audit columns are described in
+     .standards/ops/database.md. Only record what is specific to this project here. -->
+
+- **Provider**: <Kinde / Entra ID>
+- **Tenant or environment**: <...>
+- **System user id**: <the seeded UUID used for writes with no logged-in user>
+
 ### Database
 
 <!-- Which database, where does it run, how do you get to it? -->
