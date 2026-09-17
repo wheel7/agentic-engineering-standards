@@ -26,6 +26,9 @@ and imports the rest from here.
 agentic-engineering-standards/
 ├── README.md
 ├── CODEOWNERS
+├── .claude-plugin/     Makes this repo installable as a Claude Code plugin
+│   ├── plugin.json
+│   └── marketplace.json
 ├── general/            Stack-independent conventions
 │   ├── language.md
 │   ├── testing.md
@@ -146,8 +149,45 @@ read perfectly well as a checklist for a person.
 handful of decisions that cannot be derived from an empty repository, such as the product
 name and the language of the domain, before it scaffolds anything.
 
-Use them by referring to them from your project `CLAUDE.md`, or by pointing your local
-skills configuration at this folder.
+### Installing them
+
+This repository is a Claude Code plugin, so the skills are installed once and are then
+available in every project:
+
+```
+/plugin marketplace add wheel7/agentic-engineering-standards
+/plugin install agentic-engineering-standards@agentic-standards
+```
+
+They then appear namespaced:
+
+- `/agentic-engineering-standards:project-setup`
+- `/agentic-engineering-standards:dotnet-feature`
+- `/agentic-engineering-standards:react-component`
+
+To work on the skills themselves, point Claude Code at a local checkout instead, and use
+`/reload-plugins` after an edit:
+
+```bash
+claude --plugin-dir ./agentic-engineering-standards
+```
+
+### Why both the plugin and the submodule
+
+They carry different things and neither replaces the other.
+
+| | Carries | Loaded |
+|---|---|---|
+| Plugin | the skills | on demand, when a task calls for one |
+| Submodule | the standards documents | into every session, through the `@` imports in your `CLAUDE.md` |
+
+A skill is a procedure you want available and out of the way until it is needed. A
+standard is a rule that has to be in front of Claude while it writes any code at all, and
+pinned per project so that updating it shows up as a diff.
+
+The skills refer to the documents by their `.standards/` paths, so a project that installs
+the plugin without adding the submodule ends up with skills pointing at files that are not
+there. Do both.
 
 ---
 
@@ -177,6 +217,10 @@ Two rules of thumb:
 
 - Something that applies in more than one project belongs here. Something that applies in
   one project belongs in that project's `CLAUDE.md`.
+- Changing a skill reaches installed plugins only when `version` in
+  [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) goes up. Changing a standards
+  document reaches a project when that project moves its submodule. Both are deliberate on
+  purpose.
 - Explain *why*, not only *what*. A rule without a reason does not get followed.
 
 These standards were written for one team and are shared in case they are useful to

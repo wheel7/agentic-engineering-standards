@@ -1,0 +1,20 @@
+{
+  "name": "agentic-engineering-standards",
+  "displayName": "Agentic Engineering Standards",
+  "version": "1.0.0",
+  "description": "Engineering standards for .NET and React, plus the skills that apply them: setting up a project, adding a feature, building a component.",
+  "author": {
+    "name": "Wheel7",
+    "url": "https://github.com/wheel7"
+  },
+  "homepage": "https://github.com/wheel7/agentic-engineering-standards",
+  "repository": "https://github.com/wheel7/agentic-engineering-standards",
+  "license": "MIT",
+  "keywords": [
+    "engineering-standards",
+    "dotnet",
+    "react",
+    "postgres",
+    "github-actions"
+  ]
+}

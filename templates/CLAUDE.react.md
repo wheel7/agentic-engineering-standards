@@ -6,6 +6,11 @@ Copy this file to the root of your React project as CLAUDE.md.
 Precondition: the standards are added as a submodule in .standards
     git submodule add https://github.com/wheel7/agentic-engineering-standards.git .standards
 
+The skills come from the same repository, installed once as a plugin rather than
+per project:
+    /plugin marketplace add wheel7/agentic-engineering-standards
+    /plugin install agentic-engineering-standards@agentic-standards
+
 Keep this file THIN. Anything that applies to other projects too does not belong here,
 but in the agentic-engineering-standards repo. Replace all <placeholders> below.
 -->

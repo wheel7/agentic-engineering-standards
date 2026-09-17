@@ -1,0 +1,14 @@
+{
+  "name": "agentic-standards",
+  "owner": {
+    "name": "Wheel7",
+    "url": "https://github.com/wheel7"
+  },
+  "plugins": [
+    {
+      "name": "agentic-engineering-standards",
+      "source": "./",
+      "description": "Engineering standards for .NET and React, plus the skills that apply them."
+    }
+  ]
+}

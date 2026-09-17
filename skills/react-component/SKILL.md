@@ -6,6 +6,10 @@ description: DRAFT - adds a new React component following our (not yet settled) 
 # Adding a new React component
 
 > **DRAFT - still to be reviewed by the team.**
+
+> The `.standards/` paths below assume this project has the standards as a git submodule.
+> Without it, the same documents are in the repository this skill was installed from.
+
 >
 > The underlying conventions in `@.standards/react/ARCHITECTURE.md` and
 > `@.standards/react/testing.md` are still a draft. On a conflict, always follow what

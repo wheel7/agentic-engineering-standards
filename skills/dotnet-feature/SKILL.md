@@ -9,6 +9,9 @@ Follows the architecture from `@.standards/dotnet/ARCHITECTURE.md`. Read that do
 if you are in doubt about a choice; this skill is the execution of the checklist from
 chapter 6, not a replacement for it.
 
+> The `.standards/` paths below assume this project has the standards as a git submodule.
+> Without it, the same documents are in the repository this skill was installed from.
+
 `<Product>` in the paths below is the product name of the solution, for example
 `TodoApp` in `src/TodoApp.Domain/`. See `@.standards/dotnet/solution-layout.md`.
 

@@ -8,6 +8,9 @@ description: Sets up a new repository against these engineering standards, inclu
 This skill turns the standards in `.standards/` into a working repository. It is the one
 place where the decisions that cannot be derived from code get made and recorded.
 
+> The `.standards/` paths below assume this project has the standards as a git submodule.
+> Without it, the same documents are in the repository this skill was installed from.
+
 ## Ask first, scaffold second
 
 Seven things cannot be inferred from an empty repository, and all seven are expensive to
