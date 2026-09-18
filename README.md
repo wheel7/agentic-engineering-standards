@@ -182,11 +182,13 @@ lands on inside **your** project, chosen by the last argument of `git submodule 
 my-project/
 ├── CLAUDE.md
 ├── src/
-└── .standards/          <- the contents of this repository appear here
-    ├── general/
-    ├── dotnet/
-    ├── ops/
-    └── skills/
+└── .standards/          <- the whole of this repository appears here
+    ├── general/         <- imported by CLAUDE.md
+    ├── dotnet/          <- imported by CLAUDE.md
+    ├── react/           <- imported by CLAUDE.md
+    ├── ops/             <- imported by CLAUDE.md
+    ├── templates/       <- you copied CLAUDE.md out of here once
+    └── skills/          <- on disk, but not where Claude Code loads skills from
 ```
 
 So `.standards/dotnet/ARCHITECTURE.md` in a project is the same file as
@@ -196,6 +198,25 @@ The name is baked into around sixty references across the templates and the skil
 mount it at `.standards` and nowhere else. Documents inside this repository never use
 that prefix; they link to each other with ordinary relative paths, because inside the
 submodule there is no `.standards` above them.
+
+### That `skills/` folder is a copy you can read, not a skill you can call
+
+A submodule is a full clone, so every file in this repository lands in `.standards/`,
+`skills/` included. That folder is genuinely there and you can open it.
+
+What it is not is a place Claude Code looks. Skills are loaded from `~/.claude/skills/`,
+from `<project>/.claude/skills/`, or from a plugin. A `SKILL.md` sitting in a submodule is
+a markdown file like any other, so `/wheel7:project-setup` does not come from there.
+
+That leaves it useful for exactly one thing, which is worth knowing while you are trying
+these standards out on a project:
+
+> Read `.standards/skills/project-setup/SKILL.md` and follow it.
+
+That works with no setup at all, because the file is right there in the project. You give
+up invoking it with a slash and you give up its loading only when needed. For a first
+project where the point is to find out whether the standards hold up, that is a fair
+trade.
 
 ### Why both the plugin and the submodule
 
