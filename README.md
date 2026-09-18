@@ -20,6 +20,50 @@ and imports the rest from here.
 
 ---
 
+## Getting started
+
+### Once per machine
+
+Install the skills. They are a Claude Code plugin, so this is not per project:
+
+```
+/plugin marketplace add wheel7/agentic-engineering-standards
+/plugin install wheel7@agentic-standards
+```
+
+You now have `/wheel7:project-setup`, `/wheel7:dotnet-feature` and
+`/wheel7:react-component` in every project on this machine.
+
+### Per new project
+
+Order matters, because the imports are read when a session starts.
+
+```bash
+# 1. In the new, empty repository
+git submodule add https://github.com/wheel7/agentic-engineering-standards.git .standards
+
+# 2. Copy the template for your stack and rename it
+cp .standards/templates/CLAUDE.dotnet.md CLAUDE.md
+
+# 3. Only now start Claude Code
+claude
+```
+
+Then run `/wheel7:project-setup`. It asks the seven things that cannot be derived from an
+empty repository, product name and domain language among them, and scaffolds afterwards.
+Finish by filling in the placeholders it could not answer for you in `CLAUDE.md`.
+
+### Working on these standards themselves
+
+Point Claude Code at a local checkout instead of the installed copy, and pick up edits
+with `/reload-plugins`:
+
+```bash
+claude --plugin-dir /path/to/agentic-engineering-standards
+```
+
+---
+
 ## Structure
 
 ```
@@ -150,28 +194,9 @@ read perfectly well as a checklist for a person.
 handful of decisions that cannot be derived from an empty repository, such as the product
 name and the language of the domain, before it scaffolds anything.
 
-### Installing them
-
-This repository is a Claude Code plugin, so the skills are installed once and are then
-available in every project:
-
-```
-/plugin marketplace add wheel7/agentic-engineering-standards
-/plugin install wheel7@agentic-standards
-```
-
-They then appear namespaced:
-
-- `/wheel7:project-setup`
-- `/wheel7:dotnet-feature`
-- `/wheel7:react-component`
-
-To work on the skills themselves, point Claude Code at a local checkout instead, and use
-`/reload-plugins` after an edit:
-
-```bash
-claude --plugin-dir ./agentic-engineering-standards
-```
+Installing them is in [Getting started](#getting-started) above. There is one way in,
+the plugin, and the commands are `/wheel7:project-setup`, `/wheel7:dotnet-feature` and
+`/wheel7:react-component`.
 
 ### Where `.standards` comes from
 
@@ -199,24 +224,14 @@ mount it at `.standards` and nowhere else. Documents inside this repository neve
 that prefix; they link to each other with ordinary relative paths, because inside the
 submodule there is no `.standards` above them.
 
-### That `skills/` folder is a copy you can read, not a skill you can call
+### Ignore `.standards/skills/`
 
-A submodule is a full clone, so every file in this repository lands in `.standards/`,
-`skills/` included. That folder is genuinely there and you can open it.
+A submodule is a full clone, so `skills/` lands in the project too. It is not where the
+skills come from. Claude Code loads skills from `~/.claude/skills/`, from a project's own
+`.claude/skills/`, or from a plugin, and a `SKILL.md` inside a submodule is none of those.
 
-What it is not is a place Claude Code looks. Skills are loaded from `~/.claude/skills/`,
-from `<project>/.claude/skills/`, or from a plugin. A `SKILL.md` sitting in a submodule is
-a markdown file like any other, so `/wheel7:project-setup` does not come from there.
-
-That leaves it useful for exactly one thing, which is worth knowing while you are trying
-these standards out on a project:
-
-> Read `.standards/skills/project-setup/SKILL.md` and follow it.
-
-That works with no setup at all, because the file is right there in the project. You give
-up invoking it with a slash and you give up its loading only when needed. For a first
-project where the point is to find out whether the standards hold up, that is a fair
-trade.
+Treat it as a side effect of cloning, the way you treat this repository's `LICENSE` ending
+up in your project. The skills come from the plugin.
 
 ### Why both the plugin and the submodule
 
