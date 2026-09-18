@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "agentic-engineering-standards",
+      "name": "wheel7",
       "source": "./",
       "description": "Engineering standards for .NET and React, plus the skills that apply them."
     }

@@ -157,14 +157,14 @@ available in every project:
 
 ```
 /plugin marketplace add wheel7/agentic-engineering-standards
-/plugin install agentic-engineering-standards@agentic-standards
+/plugin install wheel7@agentic-standards
 ```
 
 They then appear namespaced:
 
-- `/agentic-engineering-standards:project-setup`
-- `/agentic-engineering-standards:dotnet-feature`
-- `/agentic-engineering-standards:react-component`
+- `/wheel7:project-setup`
+- `/wheel7:dotnet-feature`
+- `/wheel7:react-component`
 
 To work on the skills themselves, point Claude Code at a local checkout instead, and use
 `/reload-plugins` after an edit:
@@ -172,6 +172,30 @@ To work on the skills themselves, point Claude Code at a local checkout instead,
 ```bash
 claude --plugin-dir ./agentic-engineering-standards
 ```
+
+### Where `.standards` comes from
+
+It is not a folder in this repository and never will be. It is the path the submodule
+lands on inside **your** project, chosen by the last argument of `git submodule add`:
+
+```
+my-project/
+├── CLAUDE.md
+├── src/
+└── .standards/          <- the contents of this repository appear here
+    ├── general/
+    ├── dotnet/
+    ├── ops/
+    └── skills/
+```
+
+So `.standards/dotnet/ARCHITECTURE.md` in a project is the same file as
+[`dotnet/ARCHITECTURE.md`](dotnet/ARCHITECTURE.md) here.
+
+The name is baked into around sixty references across the templates and the skills, so
+mount it at `.standards` and nowhere else. Documents inside this repository never use
+that prefix; they link to each other with ordinary relative paths, because inside the
+submodule there is no `.standards` above them.
 
 ### Why both the plugin and the submodule
 
