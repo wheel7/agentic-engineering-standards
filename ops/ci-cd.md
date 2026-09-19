@@ -183,6 +183,8 @@ journey belongs to the product and not to the frontend. See
       - name: Apply migrations
         run: |
           dotnet tool install --global dotnet-ef --version 10.*
+          # dotnet ef reads the project metadata before it builds, and that needs a restore.
+          dotnet restore
           dotnet ef database update \
             --project src/TodoApp.Infrastructure \
             --startup-project src/TodoApp.Api
@@ -375,6 +377,8 @@ jobs:
 
       - name: Build migration bundle
         run: |
+          dotnet tool install --global dotnet-ef --version 10.*
+          dotnet restore
           dotnet ef migrations bundle \
             --project src/TodoApp.Infrastructure \
             --startup-project src/TodoApp.Api \
