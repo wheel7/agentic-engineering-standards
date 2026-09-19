@@ -13,7 +13,7 @@ place where the decisions that cannot be derived from code get made and recorded
 
 ## Ask first, scaffold second
 
-Seven things cannot be inferred from an empty repository, and all seven are expensive to
+Eight things cannot be inferred from an empty repository, and all eight are expensive to
 change later. Ask the developer, one at a time, and do not guess.
 
 Ask the questions in this order, because later answers depend on earlier ones.
@@ -69,7 +69,30 @@ provider and its subject.
 Ask for the system user id as well, or decide to generate one. Every row needs a
 `created_by`, including the rows no logged-in person ever creates.
 
-### 6. Environments and hosting
+### 6. Local ports
+
+Two fixed ports on `localhost`, one for the frontend and one for the API. Ask for both, and
+do not take the defaults of the tools.
+
+This comes right after the authentication provider because that is what makes it matter.
+The provider only redirects to a callback URL that was registered with it, port included,
+so `http://localhost:<frontend port>` ends up typed into Kinde or Entra ID. If the port
+moves, signing in stops working, with an error page at the provider that says nothing
+about ports. The API needs the same number for its CORS allowlist.
+
+The defaults are the wrong choice for a second reason: every Vite project wants 5173 and
+every container example says 8080, so two projects on one machine collide, and whichever
+starts second silently gets another port.
+
+Apply the answer everywhere it appears, see `@.standards/ops/containers.md` chapter 3:
+
+- The frontend dev server, with the port strict, so it fails rather than moving.
+- The API under `dotnet run`, in `launchSettings.json`.
+- The host side of the port mapping in compose. Inside the container it stays 8080.
+- The API URL the frontend is configured with, and the CORS allowlist for development.
+- The callback and logout URLs to register at the provider, in the project `CLAUDE.md`.
+
+### 7. Environments and hosting
 
 Where does this run, and who is allowed to deploy to it? The answer drives the deploy
 jobs in the CD workflow.
@@ -88,7 +111,7 @@ See `@.standards/ops/environments.md`. For each deployed environment, ask:
 If none of this is decided yet, say so in the project `CLAUDE.md` rather than inventing
 something.
 
-### 7. Documentation language
+### 8. Documentation language
 
 The team's call, but it has to be one language. Record it.
 

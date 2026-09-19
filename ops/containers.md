@@ -115,7 +115,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=todoapp;Username=todoapp;Password=localdev"
     ports:
-      - "8080:8080"
+      # The project's own API port on the host, 8080 inside the container. See below.
+      - "5001:8080"
     depends_on:
       db:
         condition: service_healthy
@@ -143,6 +144,40 @@ Points to watch:
 
 This compose file does not run migrations. Do that yourself locally, see
 [`database.md`](database.md).
+
+### Local ports
+
+Every project picks two ports on `localhost`, one for the frontend and one for the API,
+and keeps them. They are asked for during setup and recorded in the project `CLAUDE.md`.
+
+The reason is the identity provider. Kinde and Entra ID only redirect to a callback URL
+that was registered with them, and the port is part of that URL. So
+`http://localhost:<frontend port>` is typed into the provider once, and from then on the
+frontend has to be there. A dev server that quietly moves to the next free port gives you
+an error page at the provider that does not mention ports at all.
+
+The tool defaults are the wrong pick for a second reason. Every Vite project wants 5173 and
+every container example maps 8080, so the second project you start on the same machine
+either fails or, worse, gets a different port without saying so.
+
+One number has to show up in several places, and they have to agree:
+
+| Where | What |
+|---|---|
+| The frontend dev server | the frontend port, **strict**, so a taken port is an error and not a silent move |
+| `launchSettings.json` of the API | the API port, for `dotnet run` |
+| `ports:` of the API in compose | the API port on the host side, `8080` on the container side |
+| The API URL the frontend is configured with | the API port |
+| The CORS allowlist for development | the frontend origin, see [`../general/security.md`](../general/security.md) |
+| The application registration at the provider | the frontend origin, as callback and as logout URL |
+
+The API answers on the same port whether it runs in a container or under `dotnet run`, so
+the frontend never has to be pointed somewhere else depending on how you started the rest.
+Inside the container the port stays 8080, as chapter 1 says; only the host side of the
+mapping is the project's own.
+
+This is about development only. A deployed environment has hostnames, see
+[`environments.md`](environments.md).
 
 ---
 

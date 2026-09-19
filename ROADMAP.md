@@ -43,7 +43,7 @@ ready they are:
 | Who is the contact for a security report | [`general/security.md`](general/security.md) |
 | Authentication inside the compose stack, so the journeys have something to log in to | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 4 |
 
-| How the frontend is served in the compose stack the journeys run against. The job points `BASE_URL` at port 8080, which is the API, and nothing in the stack serves the React build | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 4, [`ops/containers.md`](ops/containers.md) ch. 7 |
+| How the frontend is served in the compose stack the journeys run against. The job points `BASE_URL` at the API, and nothing in the stack serves the React build | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 4, [`ops/containers.md`](ops/containers.md) ch. 7 |
 | How the frontend gets deployed. CD builds and ships the API image; the static build output has no job, no target and no rollback | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 5, [`ops/environments.md`](ops/environments.md) |
 
 The authentication one has three options written out with what each costs. It matters because one

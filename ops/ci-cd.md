@@ -201,7 +201,7 @@ journey belongs to the product and not to the frontend. See
       - name: Run the journeys
         working-directory: tests/TodoApp.E2ETests
         env:
-          BASE_URL: http://localhost:8080
+          BASE_URL: http://localhost:5001
         run: npx playwright test
 
       - name: Application logs on failure
@@ -256,7 +256,7 @@ journeys can only cover what an anonymous visitor sees.
 
 ### Still to be decided: the frontend in the stack
 
-The job above points `BASE_URL` at port 8080, which is the API. Nothing in the compose
+The job above points `BASE_URL` at the API, on the host port from the compose file. Nothing in the compose
 stack serves the React build, so as written there is no page for the browser to open.
 [`containers.md`](containers.md) chapter 7 says the frontend does not get a production
 container, which is right for production and leaves this job without a frontend.
