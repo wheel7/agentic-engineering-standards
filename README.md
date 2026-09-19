@@ -28,12 +28,23 @@ and imports the rest from here.
 
 ### Once per machine
 
-Install the skills. They are a Claude Code plugin, so this is not per project:
+Install the skills. They are a Claude Code plugin, so this is not per project. From a
+shell:
 
+```bash
+claude plugin marketplace add wheel7/agentic-engineering-standards
+claude plugin install wheel7@agentic-standards
 ```
-/plugin marketplace add wheel7/agentic-engineering-standards
-/plugin install wheel7@agentic-standards
-```
+
+Inside a running Claude Code terminal session the same two commands exist as
+`/plugin marketplace add ...` and `/plugin install ...`. They do not work in the VS Code
+extension, which answers that `/plugin` is not available in this environment, and they are
+not shell commands either. If you only have the extension and `claude` is not on your
+`PATH`, the extension ships the binary in its own folder under
+`resources/native-binary/`, and the two shell commands above work with that.
+
+Adding a marketplace registers this repository as a plugin source on your machine. Nothing
+is published anywhere by doing it.
 
 You now have `/wheel7:project-setup`, `/wheel7:dotnet-feature` and
 `/wheel7:react-component` in every project on this machine.
