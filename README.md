@@ -1,7 +1,11 @@
 # Agentic Engineering Standards
 
-Shared engineering standards for .NET and React projects, written so that people and AI
+Shared engineering standards for full-stack projects, written so that people and AI
 coding agents work from the same source of truth.
+
+Every project these standards describe has the same shape: a .NET API and a React
+frontend, in one repository. That is a premise and not an option, and it is why there is
+one template, one layout and one pipeline rather than a variant per stack.
 
 The content is ordinary engineering standards: architecture, naming, database
 conventions, containers, CI/CD. What makes it agentic is the delivery. Every project
@@ -42,8 +46,8 @@ Order matters, because the imports are read when a session starts.
 # 1. In the new, empty repository
 git submodule add https://github.com/wheel7/agentic-engineering-standards.git .standards
 
-# 2. Copy the template for your stack and rename it
-cp .standards/templates/CLAUDE.dotnet.md CLAUDE.md
+# 2. Copy the template and rename it
+cp .standards/templates/CLAUDE.project.md CLAUDE.md
 
 # 3. Only now start Claude Code
 claude
@@ -97,13 +101,12 @@ agentic-engineering-standards/
 │   ├── dotnet-feature/SKILL.md
 │   └── react-component/SKILL.md
 └── templates/          Example CLAUDE.md to copy into a project
-    ├── CLAUDE.dotnet.md
-    └── CLAUDE.react.md
+    └── CLAUDE.project.md
 ```
 
-One repository for every stack. `general/` holds what applies everywhere, with a folder
-per stack beside it. That way a project pulls in a single submodule, even when it is a
-full-stack repository.
+One repository for both halves of the stack. `general/` holds what applies everywhere,
+with `dotnet/` and `react/` beside it. A project is always full stack, so it pulls in a
+single submodule and imports all of it.
 
 `ops/` sits on a different axis from the stack folders. Those describe how you write
 code; `ops/` describes how the thing runs. PostgreSQL, containers and GitHub Actions are
@@ -160,24 +163,21 @@ runs ahead unexpectedly. It changes when you change it.
 
 ## Importing into your project `CLAUDE.md`
 
-The `CLAUDE.md` in the root of your project imports only the files it needs, using
-`@` imports:
+The `CLAUDE.md` in the root of your project pulls the standards in with `@` imports:
 
 ```markdown
 @.standards/general/language.md
 @.standards/general/git-workflow.md
 @.standards/dotnet/ARCHITECTURE.md
+@.standards/react/ARCHITECTURE.md
 @.standards/ops/database.md
 ```
 
-Import deliberately rather than everything: a React-only project has no use for
-`dotnet/`.
-
-Copy the matching file from [`templates/`](templates/) into the root of your project as
-`CLAUDE.md` to get started:
-
-- [`templates/CLAUDE.dotnet.md`](templates/CLAUDE.dotnet.md)
-- [`templates/CLAUDE.react.md`](templates/CLAUDE.react.md)
+Copy [`templates/CLAUDE.project.md`](templates/CLAUDE.project.md) into the root of your
+project as `CLAUDE.md` to get started. There is one template because there is one kind of
+project: a .NET API and a React frontend in one repository. It imports every document, and
+a project that genuinely has no use for one removes that line and records why under its
+deviations.
 
 Then fill in the "Specific to this repo" section. Anything that turns out to be generic
 does not belong there, but here.

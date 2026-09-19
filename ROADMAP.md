@@ -43,7 +43,10 @@ ready they are:
 | Who is the contact for a security report | [`general/security.md`](general/security.md) |
 | Authentication inside the compose stack, so the journeys have something to log in to | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 4 |
 
-That last one has three options written out with what each costs. It matters because one
+| How the frontend is served in the compose stack the journeys run against. The job points `BASE_URL` at port 8080, which is the API, and nothing in the stack serves the React build | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 4, [`ops/containers.md`](ops/containers.md) ch. 7 |
+| How the frontend gets deployed. CD builds and ships the API image; the static build output has no job, no target and no rollback | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 5, [`ops/environments.md`](ops/environments.md) |
+
+The authentication one has three options written out with what each costs. It matters because one
 of them puts a test-only authentication bypass into production code, which is not a thing
 to end up with by accident.
 
@@ -64,7 +67,13 @@ Vitest versus Jest, MSW, coverage, and whether there is a React equivalent of th
 architecture tests.
 
 They stay open on purpose. There is no frontend yet, and answering them now is deciding
-without a reason to.
+without a reason to. Every project is full stack, so the first real project will force
+most of them. Decide them there, record them in that project's `CLAUDE.md`, and move what
+turns out to be generic back here.
+
+What is settled is where the frontend lives, `src/<Product>.Web/`, and where the journeys
+live, `tests/<Product>.E2ETests/`. See
+[`dotnet/solution-layout.md`](dotnet/solution-layout.md).
 
 The Playwright policy is part of this. The end-to-end job exists in
 [`ops/ci-cd.md`](ops/ci-cd.md) and runs against the compose stack, but which journeys are
@@ -79,14 +88,14 @@ rather than about a rule inside it.
 
 ### The eager imports are heavy
 
-A `CLAUDE.md` built from [`templates/CLAUDE.dotnet.md`](templates/CLAUDE.dotnet.md) pulls
-in twelve documents through `@` imports, and those load into context at the start of every
-session, before anything is asked.
+A `CLAUDE.md` built from [`templates/CLAUDE.project.md`](templates/CLAUDE.project.md)
+pulls in fourteen documents through `@` imports, and those load into context at the start
+of every session, before anything is asked.
 
 | | |
 |---|---|
-| Words | 16,762 |
-| Rough estimate | ~29,000 tokens |
+| Words | 18,039 |
+| Rough estimate | ~31,000 tokens |
 
 The four `ops/` documents are over 7,500 words of that, and they only matter when somebody
 is working on the pipeline, the database or the environments. That is the profile of

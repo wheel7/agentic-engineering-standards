@@ -79,7 +79,38 @@ jobs:
           dotnet list package --vulnerable --include-transitive > vuln.txt
           cat vuln.txt
           ! grep -q "has the following vulnerable packages" vuln.txt
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/TodoApp.Web
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: src/TodoApp.Web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high
 ```
+
+Two jobs, because every project has two halves that build with different tools, see
+[`../dotnet/solution-layout.md`](../dotnet/solution-layout.md). They share nothing, so they
+run side by side and the slower one sets the time. Both are required checks.
+
+The `web` job follows the React standard, which is still a draft. The shape of the job is
+settled, a job per half with `working-directory` on the frontend folder. The exact scripts
+are whatever the project's `package.json` defines.
 
 Three things that easily go wrong:
 
@@ -125,8 +156,9 @@ comes in behind them. It drives the compose stack from
 [`containers.md`](containers.md), which means no deployed environment, no shared state
 and no secrets.
 
-Only relevant to a repository that serves a user interface. An API-only repository has no
-browser journey to drive.
+The journeys live in `tests/<Product>.E2ETests/`, with their own `package.json`, because a
+journey belongs to the product and not to the frontend. See
+[`../dotnet/solution-layout.md`](../dotnet/solution-layout.md).
 
 ```yaml
   e2e:
@@ -161,11 +193,13 @@ browser journey to drive.
         run: docker compose up -d --wait
 
       - name: Install Playwright
+        working-directory: tests/TodoApp.E2ETests
         run: |
           npm ci
           npx playwright install --with-deps chromium
 
       - name: Run the journeys
+        working-directory: tests/TodoApp.E2ETests
         env:
           BASE_URL: http://localhost:8080
         run: npx playwright test
@@ -178,7 +212,7 @@ browser journey to drive.
         if: failure()
         with:
           name: playwright-report
-          path: playwright-report/
+          path: tests/TodoApp.E2ETests/playwright-report/
           retention-days: 7
 
       - name: Tear down
@@ -220,6 +254,18 @@ against. Three ways out, and none of them is free:
 Decide this per project and write down which one and why. Until it is decided, the
 journeys can only cover what an anonymous visitor sees.
 
+### Still to be decided: the frontend in the stack
+
+The job above points `BASE_URL` at port 8080, which is the API. Nothing in the compose
+stack serves the React build, so as written there is no page for the browser to open.
+[`containers.md`](containers.md) chapter 7 says the frontend does not get a production
+container, which is right for production and leaves this job without a frontend.
+
+The options are to build the frontend in the job and serve the output with a static file
+server, to let Playwright start the dev server through its `webServer` setting, or to give
+compose a frontend service that exists only for this purpose. The first is closest to what
+production serves. Not decided yet.
+
 ---
 
 ## 5. CD
@@ -227,6 +273,14 @@ journeys can only cover what an anonymous visitor sees.
 The deploy hangs off the CI run, not off the push. A green run on `develop` goes to test
 on its own. A green run on `main` is a hotfix and goes to production, because that is the
 only reason anything lands on `main` from outside this pipeline.
+
+> **Still to be decided: deploying the frontend.** Everything below builds and ships the
+> API image. The frontend's build output is static files, and there is no job yet that
+> publishes them, no target they go to and no way to roll them back. The principle from
+> the top of this document still holds: build once, in CI, and promote that same output
+> rather than rebuilding per environment. That has a consequence worth knowing before you
+> start: a Vite build bakes its environment variables in at build time, so the API URL
+> cannot be one of them if the same output has to serve every environment.
 
 ```yaml
 name: CD
@@ -482,9 +536,9 @@ or an App token and the loop comes back.
 
 Set these as required checks in the branch protection of `main`:
 
-- build succeeds
+- build succeeds, for both the `build` and the `web` job
 - all tests pass, in every category that applies to the change
-- no vulnerable packages
+- no vulnerable packages, in NuGet and in npm
 
 Required checks are what makes the workflow a gate rather than a report. A workflow
 without them runs, goes red, and changes nothing about what a person is allowed to do

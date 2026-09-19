@@ -1,6 +1,6 @@
 ---
 name: react-component
-description: DRAFT - adds a new React component following our (not yet settled) frontend architecture. Use this skill whenever a new component, screen or feature has to be added to a React project, for example "create a TodoList component" or "add a screen to show orders". The conventions behind it have not been confirmed by the team yet; always check first how the existing project does it.
+description: DRAFT - adds a new React component following our (not yet settled) frontend architecture. Use this skill whenever a new component, screen or feature has to be added to the React frontend of a project, for example "create a TodoList component" or "add a screen to show orders". The conventions behind it have not been confirmed by the team yet; always check first how the existing project does it.
 ---
 
 # Adding a new React component
@@ -23,8 +23,9 @@ description: DRAFT - adds a new React component following our (not yet settled) 
 3. Look at a comparable existing component and follow that style. That weighs more
    heavily than this skill, as long as the standard is a draft.
 4. Decide where the component belongs: inside a feature (`src/features/<feature>/`) or
-   shared (`src/components/`). When in doubt: start inside the feature and only move it
-   once a second feature needs it.
+   shared (`src/components/`). Both paths are relative to the frontend folder,
+   `src/<Product>.Web/`, and that is also where you run `npm`. When in doubt: start inside
+   the feature and only move it once a second feature needs it.
 
 ## Steps
 

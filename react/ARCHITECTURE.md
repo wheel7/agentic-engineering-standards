@@ -19,6 +19,10 @@
 
 ## 2. Folder structure
 
+The frontend lives in `src/<Product>.Web/` in the project repository, next to the API.
+That part is settled, see [`../dotnet/solution-layout.md`](../dotnet/solution-layout.md).
+Everything below is relative to that folder, and is still a draft.
+
 ```
 src/
 ├── features/

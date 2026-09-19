@@ -1,6 +1,6 @@
 ---
 name: project-setup
-description: Sets up a new repository against these engineering standards, including the solution layout, database, container setup and CI/CD. Use when someone starts a new project, creates a new solution, or asks how to bootstrap a repository that follows the team standards - for example "set up a new API for billing" or "start a new React project". Do not use for adding a feature to an existing project; use dotnet-feature or react-component for that.
+description: Sets up a new full-stack repository against these engineering standards - a .NET API and a React frontend in one repository - including the solution layout, frontend, database, container setup and CI/CD. Use when someone starts a new project, creates a new solution, or asks how to bootstrap a repository that follows the team standards - for example "set up a new application for billing" or "start a new project". Do not use for adding a feature to an existing project; use dotnet-feature or react-component for that.
 ---
 
 # Setting up a new project
@@ -37,10 +37,19 @@ gets `Polis` and `CreatePolisCommand`. See `@.standards/general/language.md`.
 Ask it explicitly. A team that never decides ends up with both, which is the one outcome
 the standard rules out.
 
-### 3. Stack and entry points
+### 3. Entry points
 
-.NET API, React frontend, or both. More than one entry point, such as an API plus a
-worker? Each entry point is its own project and its own container image.
+The stack is not a question. Every project is a .NET API in `src/<Product>.Api` and a
+React frontend in `src/<Product>.Web`, in one repository. Do not ask whether the project
+needs a frontend or a backend.
+
+What you do ask: is there an entry point beyond those two, such as a worker? Each .NET
+entry point is its own project and its own container image.
+
+Ask the frontend technology choices too: bundler, routing, data access, state, styling,
+forms and component library. The React standard leaves these open on purpose, see
+`@.standards/react/ARCHITECTURE.md`, so the project has to decide them and record them.
+An answer of "not decided yet" is fine for anything the first screen does not need.
 
 ### 4. Database
 
@@ -97,27 +106,35 @@ and why.
 4. **Database** per `@.standards/ops/database.md`: Npgsql, snake_case naming, the
    `users` and `user_identities` tables, the seeded system user, `IAuditableEntity` with
    its interceptor, and the first migration.
-5. **Containers** per `@.standards/ops/containers.md`: Dockerfile, `.dockerignore`, a
-   compose file with the database and a health check.
-6. **CI/CD** per `@.standards/ops/ci-cd.md`: the workflows, with `submodules: recursive`
+5. **Frontend** in `src/<Product>.Web/` per `@.standards/dotnet/solution-layout.md` and
+   `@.standards/react/ARCHITECTURE.md`: its own `package.json`, TypeScript, the feature
+   folder layout, lint, typecheck and test scripts, and one feature that calls the example
+   slice from step 3. Not in the `.sln`, and no `package.json` in the repository root.
+6. **Containers** per `@.standards/ops/containers.md`: Dockerfile, `.dockerignore`, a
+   compose file with the database and a health check. The frontend does not get an image.
+7. **CI/CD** per `@.standards/ops/ci-cd.md`: the workflows, with `submodules: recursive`
    in every checkout. CD triggers on a successful CI run, never on push, or a red test
    will not stop a deploy.
-7. **Branches and protection** per `@.standards/general/git-workflow.md`: `main` and
+8. **Branches and protection** per `@.standards/general/git-workflow.md`: `main` and
    `develop`, both protected, with the required checks on each. Ask whether this project
    has more than one developer, because that decides whether a review is required or
    whether the checks carry it alone. Working alone changes who approves, not whether the
    protection is on.
-8. **Architecture tests** per `@.standards/dotnet/testing.md`, so the layer rules are
+9. **Architecture tests** per `@.standards/dotnet/testing.md`, so the layer rules are
    enforced from the first commit rather than from the first review that notices.
-9. **A pull request template** carrying the test evidence block from
-   `@.standards/general/testing.md`, in `.github/pull_request_template.md`.
-10. **Project `CLAUDE.md`**: copy the matching template from `@.standards/templates/` and
-   fill in every answer from the questions above. Leave no placeholder behind.
+10. **End-to-end tests** in `tests/<Product>.E2ETests/`: Playwright with its own
+    `package.json`, and one journey that goes through the frontend to the example slice.
+11. **A pull request template** carrying the test evidence block from
+    `@.standards/general/testing.md`, in `.github/pull_request_template.md`.
+12. **Project `CLAUDE.md`**: copy `@.standards/templates/CLAUDE.project.md` and fill in
+    every answer from the questions above. Leave no placeholder behind.
 
 ## Wrapping up
 
 - Run `dotnet build` and `dotnet test`. Both green before you hand over.
+- In `src/<Product>.Web`, run the lint, the typecheck, the tests and the build. All green.
 - Run `docker compose up` and confirm the application starts and reaches the database.
+- Start the frontend dev server and confirm it reaches the API.
 - Check that the project `CLAUDE.md` contains no remaining `<placeholder>`.
 - Report which decisions were made, which steps you skipped, and anything the developer
   still has to decide.

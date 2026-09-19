@@ -46,15 +46,45 @@ TodoApp.sln
 │   ├── TodoApp.Domain/
 │   ├── TodoApp.Application/
 │   ├── TodoApp.Infrastructure/
-│   └── TodoApp.Api/
+│   ├── TodoApp.Api/
+│   └── TodoApp.Web/                     the React frontend
+│       ├── package.json
+│       └── src/features/...
 └── tests/
     ├── TodoApp.Application.UnitTests/
     ├── TodoApp.Api.IntegrationTests/
-    └── TodoApp.ArchitectureTests/
+    ├── TodoApp.ArchitectureTests/
+    └── TodoApp.E2ETests/                the Playwright journeys
+        └── package.json
 ```
 
 The entry point is named after what it is: `.Api`, `.Web`, `.Blazor`, `.Worker`. A
-solution with an API and a worker therefore has two entry points side by side.
+solution with an API and a worker therefore has two .NET entry points side by side.
+
+### The frontend is an entry point
+
+Every project is full stack, so every repository has a `.Web` next to its `.Api`. The
+React application lives in `src/<Product>.Web/`, among the other entry points, and not in
+a `web/` or `frontend/` folder in the root.
+
+The reason is the same as for every other name here: one convention to predict from. The
+frontend is a way into the product exactly as the API is, and somebody who knows where
+`.Api` lives should not have to learn a second rule to find the thing that calls it. It
+also keeps `.Web` free of a technology name, for the reason chapter 4 gives: the day React
+is replaced, the folder does not have to move.
+
+What follows from that:
+
+- **It is a folder, not a project.** `.Web` is not in the `.sln` and has no assembly, so
+  the rule at the top of this document does not reach it. Inside it, the layout is the one
+  from [`../react/ARCHITECTURE.md`](../react/ARCHITECTURE.md), which is where the nested
+  `src/` comes from.
+- **Its `package.json` is its own.** There is no `package.json` in the repository root and
+  no npm workspace. Two Node projects that share nothing do not need a third thing tying
+  them together.
+- **`dotnet build` does not see it and `npm` does not see the solution.** Each half builds
+  with its own tool, from its own folder. CI runs them as separate jobs, see
+  [`../ops/ci-cd.md`](../ops/ci-cd.md).
 
 ### Test projects
 
@@ -66,13 +96,21 @@ of test it is:
 | `.UnitTests` | one class in isolation, dependencies mocked | `TodoApp.Application.UnitTests` |
 | `.IntegrationTests` | the real chain, with host and database | `TodoApp.Api.IntegrationTests` |
 | `.ArchitectureTests` | layer rules and conventions across the whole solution | `TodoApp.ArchitectureTests` |
+| `.E2ETests` | a user journey in a browser, against the running stack | `TodoApp.E2ETests` |
 
 A suffix and not a prefix, so that a test project sits next to the project it tests in
 the Solution Explorer. A bare `.Tests` is not enough once you have both unit and
 integration tests, and that moment always comes.
 
 The architecture tests do not test one layer but the solution, so there is no layer in
-that name.
+that name. The same goes for the end-to-end tests: a journey crosses the frontend, the API
+and the database, so it belongs to the product and not to `.Web`. That is why Playwright
+lives in `tests/` with its own `package.json`, and not inside the frontend. It is a Node
+project and not a .NET one, so like `.Web` it is a folder that the `.sln` does not know
+about.
+
+The frontend's own unit and component tests are not in `tests/`. They live inside `.Web`
+and run with its tooling, see [`../react/testing.md`](../react/testing.md).
 
 ---
 
@@ -83,7 +121,7 @@ later" becomes a dumping ground.
 
 ### `.Contracts`: shared types with a .NET client
 
-The standard layout is API-only. If a .NET client is added that calls the same API
+The standard layout has no .NET client. If one is added that calls the same API
 (Blazor WebAssembly, a console tool, another service), both sides need the same request
 and response types. That client must not reference `.Application` and `.Domain`: that
 puts entities and repositories in the browser.
@@ -159,4 +197,6 @@ logic belongs somewhere more concrete.
 3. Check that assembly name, root namespace and folder name are identical. `dotnet new`
    with `-n <Product>.<Layer> -o src/<Product>.<Layer>` takes care of that.
 4. Create test projects with the right suffix in `tests/`.
-5. Do not add an optional project until the situation from chapter 3 arises.
+5. Create the frontend in `src/<Product>.Web/` and the journeys in
+   `tests/<Product>.E2ETests/`, each with its own `package.json`.
+6. Do not add an optional project until the situation from chapter 3 arises.

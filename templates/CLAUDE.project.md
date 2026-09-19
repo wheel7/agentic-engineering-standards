@@ -1,15 +1,18 @@
 # CLAUDE.md - <PROJECT NAME>
 
 <!--
-Copy this file to the root of your .NET project as CLAUDE.md.
+Copy this file to the root of your project as CLAUDE.md.
+
+Every project under these standards is full stack: a .NET API and a React frontend in one
+repository. That is why there is one template and not one per stack.
 
 Precondition: the standards are added as a submodule in .standards
     git submodule add https://github.com/wheel7/agentic-engineering-standards.git .standards
 
 The skills come from the same repository, installed once as a plugin rather than
 per project:
-    /plugin marketplace add wheel7/agentic-engineering-standards
-    /plugin install wheel7@agentic-standards
+    claude plugin marketplace add wheel7/agentic-engineering-standards
+    claude plugin install wheel7@agentic-standards
 
 Keep this file THIN. Anything that applies to other projects too does not belong here,
 but in the agentic-engineering-standards repo. Replace all <placeholders> below.
@@ -28,10 +31,15 @@ go through a PR in that repo, not here.
 @.standards/dotnet/ARCHITECTURE.md
 @.standards/dotnet/solution-layout.md
 @.standards/dotnet/testing.md
+@.standards/react/ARCHITECTURE.md
+@.standards/react/testing.md
 @.standards/ops/database.md
 @.standards/ops/containers.md
 @.standards/ops/environments.md
 @.standards/ops/ci-cd.md
+
+> Note: the React standards are a **draft** at the moment. If this project deviates from
+> them, note that below - that is valuable input for the review.
 
 Updating to the latest version:
 
@@ -48,10 +56,11 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 ### Solution
 
 <!-- The product name determines the project names: <Product>.Domain, <Product>.Api, etc.
+     The React frontend is an entry point like any other and lives in src/<Product>.Web.
      See .standards/dotnet/solution-layout.md. -->
 
 - **Product name**: <Product>
-- **Entry points**: <Product>.Api <and optionally .Worker, .Blazor>
+- **Entry points**: <Product>.Api, <Product>.Web <and optionally .Worker>
 
 ### Language
 
@@ -72,6 +81,7 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 
 - **Key concepts**: <...>
 - **Most important business rules**: <...>
+- **Most important screens / flows**: <...>
 - **External systems we integrate with**: <...>
 
 ### Authentication
@@ -83,6 +93,7 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 - **Provider**: <Kinde / Entra ID>
 - **Tenant or environment**: <...>
 - **System user id**: <the seeded UUID used for writes with no logged-in user>
+- **How the frontend logs in**: <which flow, and where the token comes from>
 
 ### Database
 
@@ -100,21 +111,44 @@ dotnet ef database update       --project src/<Product>.Infrastructure --startup
 
 - **Test data / seeding**: <...>
 
+### Frontend technology choices
+
+<!-- The React standard deliberately leaves these choices open. Fill in what THIS project does. -->
+
+- **Framework / bundler**: <Vite / Next.js / ...>
+- **Routing**: <...>
+- **Server state / data access**: <TanStack Query / fetch in hooks / ...>
+- **Client state**: <...>
+- **Styling**: <Tailwind / CSS Modules / ...>
+- **Forms and validation**: <...>
+- **Component library**: <...>
+- **Is the API client generated from OpenAPI?**: <yes/no, and with which command>
+
 ### Running locally
 
 ```bash
-# Everything in containers, including the database:
+# Database and API in containers:
 docker compose up
 
 # Or only the database in a container and the API outside it:
 docker compose up -d db
 dotnet run --project src/<Product>.Api
+
+# The frontend, with the dev server:
+cd src/<Product>.Web
+npm install
+npm run dev
 ```
 
-- **Local URL**: <https://localhost:xxxx>
+- **Local API URL**: <https://localhost:xxxx>
+- **Local frontend URL**: <http://localhost:5173>
 - **Required secrets**: <which ones, and how do you set them up - e.g. dotnet user-secrets>
+- **Required frontend environment variables**: <which ones, and where do you set them - e.g. .env.local>
 - **Dependencies that must be running**: <database, message broker, mock services>
-- **Running tests**: `dotnet test`
+- **Running backend tests**: `dotnet test`
+- **Running frontend tests**: `npm test` in `src/<Product>.Web`
+- **Lint and typecheck**: `npm run lint` / `npx tsc --noEmit` in `src/<Product>.Web`
+- **Running the journeys**: `npx playwright test` in `tests/<Product>.E2ETests`
 
 ### Hosting and environments
 
@@ -122,7 +156,8 @@ dotnet run --project src/<Product>.Api
      wrong? The generic conventions are in .standards/ops/environments.md; here only what
      differs per project. Drop the rows for environments this project does not have. -->
 
-- **Runs on**: <own Debian host with Docker / ... >
+- **API runs on**: <own Debian host with Docker / ... >
+- **Frontend is served from**: <static hosting / CDN / ... >
 - **Deploy**: <which workflow, and what triggers it>
 - **Rolling back**: <how, and who is allowed to>
 - **Logs and alerting**: <where do you look when it goes wrong>
