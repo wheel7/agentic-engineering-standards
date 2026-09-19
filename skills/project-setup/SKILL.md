@@ -75,10 +75,14 @@ Two fixed ports on `localhost`, one for the frontend and one for the API. Ask fo
 do not take the defaults of the tools.
 
 This comes right after the authentication provider because that is what makes it matter.
-The provider only redirects to a callback URL that was registered with it, port included,
-so `http://localhost:<frontend port>` ends up typed into Kinde or Entra ID. If the port
-moves, signing in stops working, with an error page at the provider that says nothing
-about ports. The API needs the same number for its CORS allowlist.
+The provider only redirects to a callback URL that was registered with it, scheme and port
+included, so `https://localhost:<frontend port>` ends up typed into Kinde or Entra ID. If
+the port moves, signing in stops working, with an error page at the provider that says
+nothing about ports. The API needs the same origin for its CORS allowlist.
+
+The scheme is not a question: both run on HTTPS locally, with the ASP.NET development
+certificate, and there is no plain HTTP listener beside it. Do not ask whether the project
+wants HTTPS, and do not scaffold an `http://localhost` URL anywhere.
 
 The defaults are the wrong choice for a second reason: every Vite project wants 5173 and
 every container example says 8080, so two projects on one machine collide, and whichever
@@ -86,11 +90,23 @@ starts second silently gets another port.
 
 Apply the answer everywhere it appears, see `@.standards/ops/containers.md` chapter 3:
 
-- The frontend dev server, with the port strict, so it fails rather than moving.
-- The API under `dotnet run`, in `launchSettings.json`.
-- The host side of the port mapping in compose. Inside the container it stays 8080.
+- The frontend dev server and preview, on HTTPS, with the port strict, so it fails rather
+  than moving. It reads the certificate from `.certs`, only when a server starts, and stops
+  with the two `dotnet dev-certs` commands in the message when the files are missing. A
+  build and a test run must work without them.
+- The API under `dotnet run`, in `launchSettings.json`: one `https` profile, no `http` one.
+- The API in compose: the host side of the port mapping, `ASPNETCORE_URLS` and the Kestrel
+  certificate paths as environment variables, and `.certs` mounted read-only. The image
+  itself stays on plain 8080.
 - The API URL the frontend is configured with, and the CORS allowlist for development.
+- `.certs/` in `.gitignore` and in `.dockerignore`, before the certificate is exported.
 - The callback and logout URLs to register at the provider, in the project `CLAUDE.md`.
+
+Export the certificate yourself while scaffolding, so that what you hand over runs:
+`dotnet dev-certs https -ep .certs/localhost.pem --format Pem -np`. Trusting it,
+`dotnet dev-certs https --trust`, shows a prompt on the developer's machine, so check with
+`dotnet dev-certs https --check --trust` and ask the developer to run it when it is not
+trusted yet.
 
 ### 7. Environments and hosting
 
@@ -134,7 +150,8 @@ and why.
    folder layout, lint, typecheck and test scripts, and one feature that calls the example
    slice from step 3. Not in the `.sln`, and no `package.json` in the repository root.
 6. **Containers** per `@.standards/ops/containers.md`: Dockerfile, `.dockerignore`, a
-   compose file with the database and a health check. The frontend does not get an image.
+   compose file with the database and a health check, and the API on HTTPS on its own port.
+   The frontend does not get an image.
 7. **CI/CD** per `@.standards/ops/ci-cd.md`: the workflows, with `submodules: recursive`
    in every checkout. CD triggers on a successful CI run, never on push, or a red test
    will not stop a deploy.
@@ -156,8 +173,13 @@ and why.
 
 - Run `dotnet build` and `dotnet test`. Both green before you hand over.
 - In `src/<Product>.Web`, run the lint, the typecheck, the tests and the build. All green.
-- Run `docker compose up` and confirm the application starts and reaches the database.
-- Start the frontend dev server and confirm it reaches the API.
+- Run `docker compose up` and confirm the application starts and reaches the database:
+  `https://localhost:<API port>/health/ready` answers 200, with the certificate verified and
+  not skipped. A 401 on `/` is the API working, not a fault: every endpoint requires a
+  signed-in user unless it opts out, and nothing lives at `/`. Tell the developer, because
+  it is the first thing they will open in a browser.
+- Start the frontend dev server and confirm it is on `https://localhost:<frontend port>` and
+  that the API accepts a CORS preflight from that origin.
 - Check that the project `CLAUDE.md` contains no remaining `<placeholder>`.
 - Report which decisions were made, which steps you skipped, and anything the developer
   still has to decide.

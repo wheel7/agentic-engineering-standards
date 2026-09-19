@@ -94,7 +94,7 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 - **Tenant or environment**: <...>
 - **System user id**: <the seeded UUID used for writes with no logged-in user>
 - **How the frontend logs in**: <which flow, and where the token comes from>
-- **Registered for development**: <http://localhost:xxxx> as callback URL and as logout URL
+- **Registered for development**: <https://localhost:xxxx> as callback URL and as logout URL
 
 ### Database
 
@@ -141,13 +141,24 @@ npm install
 npm run dev
 ```
 
-<!-- Two fixed ports, chosen during setup and not the defaults of the tools. The identity
-     provider only redirects to a registered callback URL, port included, so the frontend
-     has to stay where it was registered. See .standards/ops/containers.md chapter 3. -->
+<!-- Two fixed ports, chosen during setup and not the defaults of the tools, both on HTTPS.
+     The identity provider only redirects to a registered callback URL, scheme and port
+     included, so the frontend has to stay where it was registered.
+     See .standards/ops/containers.md chapter 3. -->
 
-- **Local frontend URL**: <http://localhost:xxxx>, fixed and strict
-- **Local API URL**: <http://localhost:yyyy>, under `dotnet run` and as the host side of the
-  port mapping in compose. Inside the container it stays 8080.
+- **Local frontend URL**: <https://localhost:xxxx>, fixed and strict
+- **Local API URL**: <https://localhost:yyyy>, under `dotnet run` and as the host side of the
+  port mapping in compose.
+- **Local HTTPS certificate**: the ASP.NET development certificate, once per machine, from
+  the repository root. `.certs/` holds a private key and is not in git.
+
+```bash
+dotnet dev-certs https --trust
+dotnet dev-certs https -ep .certs/localhost.pem --format Pem -np
+# Linux and macOS only:
+chmod 644 .certs/localhost.pem .certs/localhost.key
+```
+
 - **Required secrets**: <which ones, and how do you set them up - e.g. dotnet user-secrets>
 - **Required frontend environment variables**: <which ones, and where do you set them - e.g. .env.local>
 - **Dependencies that must be running**: <database, message broker, mock services>

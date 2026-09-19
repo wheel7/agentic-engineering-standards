@@ -191,8 +191,29 @@ journey belongs to the product and not to the frontend. See
         env:
           ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=todoapp;Username=todoapp;Password=localdev"
 
+      # Development runs on HTTPS, see containers.md. A runner has no certificate, so it
+      # makes its own. Nothing here trusts it, which is why the journeys run with
+      # ignoreHTTPSErrors.
+      - name: Local HTTPS certificate
+        run: |
+          mkdir -p .certs
+          dotnet dev-certs https -ep .certs/localhost.pem --format Pem -np
+          # dev-certs writes both files readable by their owner only, and the container runs
+          # as somebody else.
+          chmod 644 .certs/localhost.pem .certs/localhost.key
+
       - name: Start the application
         run: docker compose up -d --wait
+
+      - name: The API answers
+        run: |
+          for attempt in $(seq 1 15); do
+            if curl -fsSk https://localhost:5001/health/ready; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
 
       - name: Install Playwright
         working-directory: tests/TodoApp.E2ETests
@@ -203,7 +224,7 @@ journey belongs to the product and not to the frontend. See
       - name: Run the journeys
         working-directory: tests/TodoApp.E2ETests
         env:
-          BASE_URL: http://localhost:5001
+          BASE_URL: https://localhost:5001
         run: npx playwright test
 
       - name: Application logs on failure
@@ -229,6 +250,11 @@ Why it is shaped like this:
 - **Database, then migrations, then the application.** The same order as a real deploy,
   see [`database.md`](database.md). Bringing the whole stack up at once means the
   application starts against a schema that does not exist yet.
+- **"The API answers" is there because `--wait` does not notice a crash.** The API image is
+  chiseled, so it has no shell and no `curl` to run a health check with, and compose counts
+  a container without a health check as up the moment it starts. One that starts and dies a
+  second later passes `--wait`, and the job fails three steps on with a connection refused
+  inside a journey. Asking from the outside makes a broken start fail where it happened.
 - **Only Chromium.** Three browsers triple the runtime and almost never catch a third
   thing.
 - **The compose logs on failure.** Without them a failed journey is a timeout and nothing

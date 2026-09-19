@@ -79,6 +79,7 @@ make the restore in the container fail with errors that make no sense at all.
 .github/
 **/appsettings.Development.json
 **/.env
+.certs/
 Dockerfile*
 docker-compose*.yml
 ```
@@ -114,9 +115,15 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=todoapp;Username=todoapp;Password=localdev"
+      # HTTPS locally, see "Local HTTPS" below. Configuration, not the image.
+      ASPNETCORE_URLS: "https://+:8443"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/localhost.pem
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /https/localhost.key
+    volumes:
+      - ./.certs:/https:ro
     ports:
-      # The project's own API port on the host, 8080 inside the container. See below.
-      - "5001:8080"
+      # The project's own API port on the host. See "Local ports" below.
+      - "5001:8443"
     depends_on:
       db:
         condition: service_healthy
@@ -152,7 +159,7 @@ and keeps them. They are asked for during setup and recorded in the project `CLA
 
 The reason is the identity provider. Kinde and Entra ID only redirect to a callback URL
 that was registered with them, and the port is part of that URL. So
-`http://localhost:<frontend port>` is typed into the provider once, and from then on the
+`https://localhost:<frontend port>` is typed into the provider once, and from then on the
 frontend has to be there. A dev server that quietly moves to the next free port gives you
 an error page at the provider that does not mention ports at all.
 
@@ -166,18 +173,69 @@ One number has to show up in several places, and they have to agree:
 |---|---|
 | The frontend dev server | the frontend port, **strict**, so a taken port is an error and not a silent move |
 | `launchSettings.json` of the API | the API port, for `dotnet run` |
-| `ports:` of the API in compose | the API port on the host side, `8080` on the container side |
+| `ports:` of the API in compose | the API port on the host side |
 | The API URL the frontend is configured with | the API port |
 | The CORS allowlist for development | the frontend origin, see [`../general/security.md`](../general/security.md) |
 | The application registration at the provider | the frontend origin, as callback and as logout URL |
 
 The API answers on the same port whether it runs in a container or under `dotnet run`, so
 the frontend never has to be pointed somewhere else depending on how you started the rest.
-Inside the container the port stays 8080, as chapter 1 says; only the host side of the
-mapping is the project's own.
+Only the host side of the mapping is the project's own.
 
 This is about development only. A deployed environment has hostnames, see
 [`environments.md`](environments.md).
+
+### Local HTTPS
+
+The frontend and the API both run on `https://localhost` in development, and there is no
+plain HTTP listener next to it to fall back to.
+
+The reason is that production is HTTPS, and a good part of what goes wrong around signing
+in depends on the scheme: the callback URL registered at the provider, the origins on the
+CORS allowlist, cookies marked `Secure`, and mixed content. With HTTP locally, every one of
+those has a development variant that differs from production, and the difference shows up
+on the day of the first deploy. An origin is scheme, host and port, so the scheme belongs in
+the same table as the ports above.
+
+**One certificate for both halves: the ASP.NET development certificate.** No mkcert, no
+second certificate authority to trust, nothing to install that the .NET SDK did not bring.
+Once per machine, from the repository root:
+
+```bash
+dotnet dev-certs https --trust
+dotnet dev-certs https -ep .certs/localhost.pem --format Pem -np
+```
+
+The first line creates the certificate and has the machine trust it. The second exports it
+as two PEM files, certificate and key, without a password.
+
+| Who | Gets the certificate from |
+|---|---|
+| The API under `dotnet run` | the certificate store, by itself. `launchSettings.json` only says `https://localhost:<port>` |
+| The API in compose | `.certs`, mounted read-only, through the Kestrel settings in the compose file above |
+| The frontend dev server and preview | the same two files in `.certs`, read in the bundler configuration |
+
+What to get right:
+
+- **`.certs/` holds a private key.** It is in `.gitignore` and in `.dockerignore`, it is per
+  machine, and it is never copied anywhere. It is a key for `localhost` that only your own
+  machine trusts, so it is not the kind of secret
+  [`../general/security.md`](../general/security.md) is about, and it still does not belong
+  in a repository.
+- **HTTPS in compose is configuration, not the image.** `ASPNETCORE_URLS` and the
+  certificate paths are set in the compose file. The image still listens on plain 8080, as
+  chapter 1 says, because in a deployed environment the reverse proxy terminates TLS. The
+  same image goes everywhere; only what is around it differs.
+- **The frontend must build and test without the certificate.** Read the files only when a
+  server starts, and when they are missing, stop with the two commands above in the
+  message. The `web` job in CI has no certificate and should not need one.
+- **On Linux and macOS, `chmod 644` both files.** `dev-certs` writes them readable by their
+  owner only, the certificate as well as the key, and the container runs as a different
+  user. The API then fails to start with an access denied on the `.pem`. On Windows the bind
+  mount hides this, so it shows up for the first time in CI.
+- **A CI runner makes its own certificate**, with the second command, and nothing there
+  trusts it. The journeys run with `ignoreHTTPSErrors`; they are not about TLS. See
+  [`ci-cd.md`](ci-cd.md).
 
 ---
 
@@ -240,7 +298,8 @@ and a bind mount, not with a production build.
 1. `Dockerfile` next to the entry point, build context is the root.
 2. `.dockerignore` present and up to date.
 3. Runtime image is chiseled and runs as non-root on port 8080.
-4. `docker compose up` gives a working application with a database.
+4. `docker compose up` gives a working application with a database, on HTTPS, on the
+   project's own port.
 5. Configuration comes from environment variables, not from baked-in files.
 6. Logs go to stdout, health endpoints exist.
 7. Image is tagged on the git sha.
