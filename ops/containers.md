@@ -100,7 +100,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U todoapp -d todoapp"]
       interval: 5s
@@ -132,6 +132,11 @@ Points to watch:
   accepts connections, and then it crashes on the first query.
 - **Named volume** for the data. A bind mount to a Windows folder gives permission
   problems.
+- **The volume goes on `/var/lib/postgresql`**, without `/data` behind it. From major 18
+  the image keeps its data in a directory per major version underneath that path, and it
+  refuses to start when it finds a mount on the old `/var/lib/postgresql/data`. Every
+  compose example older than 18 has the old path, so this is the line that breaks when you
+  copy one. On 17 and earlier it is the other way around.
 - **The password above is not a secret.** It only applies to a throwaway database on your
   own machine and is in the repo on purpose. No other password belongs there;
   see [`../general/security.md`](../general/security.md).
