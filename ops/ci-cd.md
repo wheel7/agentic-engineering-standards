@@ -342,6 +342,11 @@ jobs:
           ref: ${{ env.SHA }}
           submodules: recursive
 
+      # The GitHub Actions cache below only works with a buildx builder. Without this step
+      # the default docker driver is used and the build fails on "cache export is not
+      # supported for the docker driver".
+      - uses: docker/setup-buildx-action@v4
+
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -461,6 +466,12 @@ A workflow only triggers `workflow_run` once its file exists on the default bran
 this wiring does nothing until it is merged. Test it by merging it, not by watching a PR.
 `gh workflow list` shows what GitHub knows about. Right after the merge it has to list all
 four workflows.
+
+That cuts the other way as well: **a mistake in `cd.yml` never shows on a pull request.**
+CI is green, the merge goes through, and the first sign is a failed CD run a few minutes
+later that nobody is looking at. After any change to `cd.yml` or `deploy.yml`, watch the
+CD run that follows the merge. The first project found the missing buildx step that way,
+in an example that had been in this document from the start.
 
 ### The smoke test
 
@@ -587,7 +598,10 @@ or an App token, and anything that does listen to tags will run.
 
 ## 8. What has to be green before you merge
 
-Set these as required checks in the branch protection of `main`:
+Set these as required checks on `main`, through the ruleset in
+[`../templates/ruleset-main.json`](../templates/ruleset-main.json), see
+[`../general/git-workflow.md`](../general/git-workflow.md) chapter 3. In terms of jobs they
+are `build`, `web` and `e2e`:
 
 - build succeeds, for both the `build` and the `web` job
 - all tests pass, in every category that applies to the change

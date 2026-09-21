@@ -22,9 +22,15 @@ Where they live:
 | CI | GitHub Actions secrets, scoped to the workflow |
 | Deployed environments | a GitHub Environment per environment, see [`../ops/environments.md`](../ops/environments.md) |
 
-**Turn on secret scanning and push protection** on every repository. Both are free and
-push protection is the one that matters, because it refuses the push instead of telling
-you afterwards.
+**Turn on secret scanning and push protection** on every repository that can have them.
+They are free on a public repository. On a private repository of a personal account they
+are not available at all, GitHub Pro included: the API answers "Secret scanning is not
+available for this repository". A private project records that as a deviation in its
+`CLAUDE.md`, because it means nothing on GitHub's side will catch a committed secret, and
+`.gitignore` plus looking at what you stage is all there is.
+
+Where it is available, push protection is the one that matters, because it refuses the push
+instead of telling you afterwards.
 
 ### When one leaks anyway
 

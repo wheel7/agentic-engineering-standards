@@ -127,6 +127,30 @@ block from [`testing.md`](testing.md).
 Branch protection is what turns those from a report into a gate. See
 [`../ops/ci-cd.md`](../ops/ci-cd.md).
 
+**Protection is a ruleset, not a classic branch protection rule.** Both do the job for a
+branch. A ruleset is the one GitHub is building on, anyone who can read the repository can
+see it, it can be switched off without being deleted, and it covers tags as well. It also
+replaces the "include administrators" switch with a list of who may bypass it, and that
+list is empty: nobody, the owner included.
+
+The ruleset for `main` is a file, [`../templates/ruleset-main.json`](../templates/ruleset-main.json),
+so a project applies it rather than clicking it together:
+
+```bash
+gh api -X POST repos/<owner>/<repo>/rulesets --input .standards/templates/ruleset-main.json
+```
+
+It requires a pull request, squash as the only merge method, and the `build`, `web` and
+`e2e` checks from CI, and it blocks force pushes and deleting the branch. The number of
+required approvals in the file is zero, which is the setting for working alone, chapter 4.
+It becomes one the day a second developer arrives. Prove that it
+took: a direct push to `main` has to come back with "push declined due to repository rule
+violations".
+
+On a private repository this needs a paid plan, GitHub Pro for a personal account or Team
+for an organization. On a free plan GitHub refuses, and then the rule is kept by hand and
+written down as a deviation in the project `CLAUDE.md`.
+
 ---
 
 ## 4. Working solo
@@ -148,9 +172,10 @@ every check that was going to be caught socially now is not going to be caught a
 - The test evidence block still gets filled in, including the lines about what is not
   covered.
 
-**Do not use the admin bypass.** GitHub will happily let you push past your own branch
-protection, and the entire value of that protection is that it checks the things no
-colleague is going to check. A rule you can wave through is a preference.
+**Nobody bypasses it, and that includes you.** The bypass list of the ruleset stays empty.
+The entire value of that protection is that it checks the things no colleague is going to
+check, and a rule you can wave through is a preference. It holds for an agent working
+with your credentials just the same, which is a reason to want it and not a side effect.
 
 **If an agent wrote the change, you are the whole of the human oversight.** That is the
 one place where solo genuinely raises the bar rather than lowering it. Read what the diff

@@ -175,10 +175,29 @@ and why.
    expect one: merging a pull request puts code in `main` and builds an image, and nothing
    goes live until they run the Promote workflow with the commit they want.
 
-   GitHub refuses branch protection on a private repository on a free plan. When that
-   happens, do not work around it. Say so, record it in the project `CLAUDE.md` as a
-   deviation with the condition under which it gets turned on, and leave the choice between
-   a paid plan and a public repository to the developer.
+   Protection is a ruleset, applied from a file and only after the scaffold pull request is
+   merged, because the checks it requires do not exist before CI has run once:
+
+   ```bash
+   gh api -X POST repos/<owner>/<repo>/rulesets --input .standards/templates/ruleset-main.json
+   ```
+
+   With more than one developer, set `required_approving_review_count` to 1 first. Then
+   prove that it took: make an empty commit on `main`, push it, and expect "push declined
+   due to repository rule violations". Reset the local commit afterwards. From that moment
+   you cannot push to `main` either, and that is the point.
+
+   GitHub refuses this on a private repository on a free plan, with "Upgrade to GitHub Pro
+   or make this repository public". When that happens, do not work around it. Say so, record
+   it in the project `CLAUDE.md` as a deviation with the condition under which it gets
+   turned on, and leave the choice between a paid plan and a public repository to the
+   developer. Secret scanning is a separate case: on a private repository of a personal
+   account it is not available on any plan, so record that as a deviation and do not
+   present it as something an upgrade fixes.
+
+   The very first CD run deserves a look as well. It only happens after the merge, so a
+   mistake in `cd.yml` cannot show on the pull request. Check that it went green and that
+   the log says "pushing manifest" for the image.
 9. **Architecture tests** per `@.standards/dotnet/testing.md`, so the layer rules are
    enforced from the first commit rather than from the first review that notices.
 10. **End-to-end tests** in `tests/<Product>.E2ETests/`: Playwright with its own

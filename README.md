@@ -112,8 +112,9 @@ agentic-engineering-standards/
 │   ├── project-setup/SKILL.md
 │   ├── dotnet-feature/SKILL.md
 │   └── react-component/SKILL.md
-└── templates/          Example CLAUDE.md to copy into a project
-    └── CLAUDE.project.md
+└── templates/          Files a project copies or applies
+    ├── CLAUDE.project.md    The project CLAUDE.md to copy and fill in
+    └── ruleset-main.json    The protection for main, applied with gh api
 ```
 
 One repository for both halves of the stack. `general/` holds what applies everywhere,
