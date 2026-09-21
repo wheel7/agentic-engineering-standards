@@ -160,6 +160,18 @@ and why.
    has more than one developer, because that decides whether a review is required or
    whether the checks carry it alone. Working alone changes who approves, not whether the
    protection is on.
+
+   Three repository settings go with this, and none of them is the GitHub default:
+   `develop` as the default branch, squash merging only with the pull request title as the
+   commit title, and deleting the branch after a merge. Do the default branch first. While
+   it is `main`, CD and the promotion workflow do not exist for GitHub, `Closes #n` does
+   nothing, and the first pull request gets merged with a merge commit. Check with
+   `gh workflow list`, which has to show all four workflows once they are on `develop`.
+
+   GitHub refuses branch protection on a private repository on a free plan. When that
+   happens, do not work around it. Say so, record it in the project `CLAUDE.md` as a
+   deviation with the condition under which it gets turned on, and leave the choice between
+   a paid plan and a public repository to the developer.
 9. **Architecture tests** per `@.standards/dotnet/testing.md`, so the layer rules are
    enforced from the first commit rather than from the first review that notices.
 10. **End-to-end tests** in `tests/<Product>.E2ETests/`: Playwright with its own

@@ -466,6 +466,12 @@ carry the source branch as their head, not `develop` or `main`.
 A workflow only triggers `workflow_run` once its file exists on the default branch, so
 this wiring does nothing until it is merged. Test it by merging it, not by watching a PR.
 
+That is why the default branch has to be `develop`, see
+[`../general/git-workflow.md`](../general/git-workflow.md). With `main` as the default, CD
+and the promotion workflow do not exist for GitHub until `main` has their files, and `main`
+only moves when the promotion workflow runs. The way to notice is `gh workflow list`: a
+repository whose default is still `main` shows CI and nothing else.
+
 ### The smoke test
 
 The gate stops a build that fails its tests. It does not notice a deploy that succeeded
@@ -515,7 +521,12 @@ jobs:
     if: inputs.environment == 'production'
     runs-on: ubuntu-latest
     steps:
+      # The promoted commit with its history, not the tip of the default branch at depth
+      # one: a push can only move main to a commit this checkout actually has.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.sha }}
+          fetch-depth: 0
 
       - name: Point main at what is live
         run: git push origin ${{ inputs.sha }}:main
@@ -592,7 +603,8 @@ What has to be tested before any of this is worth running is in
 2. `submodules: recursive` in every checkout, plus the guard step that proves it worked.
 3. CD triggers on `workflow_run`, never on `push`, and every checkout and tag uses
    `head_sha`.
-4. Branch protection on `main` and `develop` with the checks from chapter 8.
+4. `develop` is the default branch, `gh workflow list` shows all four workflows, and there
+   is branch protection on `main` and `develop` with the checks from chapter 8.
 5. A GitHub Environment per deployed environment, with reviewers on acceptance and
    production and its own secrets. See [`environments.md`](environments.md).
 6. OIDC set up for the deploy, no static keys.

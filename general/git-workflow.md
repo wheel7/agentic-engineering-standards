@@ -15,6 +15,23 @@ GitFlow without the ceremony. Four kinds of branch, and two of them are long-liv
 | `feature/*` | one change | `develop` |
 | `hotfix/*` | a production fix that cannot wait for `develop` | `main` |
 
+**`develop` is the default branch on GitHub**, not `main`. That is a setting, and it is the
+first one to change in a new repository, because GitHub hangs more on the default branch
+than its name suggests:
+
+- A workflow triggered by `workflow_run` or `workflow_dispatch` only exists for GitHub once
+  its file is on the default branch, and it always runs the version that is there. With
+  `main` as the default, CD and the promotion workflow do not exist until `main` has them,
+  and `main` only moves when the promotion workflow runs. The pipeline can never start. And
+  if it could, every change to a workflow would only take effect after the next production
+  deploy.
+- `Closes #12` in a pull request only closes the issue on a merge into the default branch.
+- A new pull request targets the default branch, and that should be `develop`, because
+  nothing but a hotfix is ever aimed at `main`.
+- Dependabot security updates look at the default branch.
+
+`main` loses nothing by this. It stays what the table says: a record of what is live.
+
 **No `release/*` branch** until you actually need one. It earns its keep only when a
 release has to be stabilized while `develop` carries on with the next thing. If every
 change flows straight through, the release branch is a second copy of `develop` that
@@ -82,6 +99,12 @@ chapter 4.
 
 That last row is the one that matters. A merge commit there would give `main` a SHA that
 no image was ever built for, and the tag on the deployed image would point somewhere else.
+
+**Make the repository enforce the first two rows.** In the repository settings, allow
+squash merging only, with the pull request title as the commit title, and turn on deleting
+the branch after a merge. With all three methods on, the wrong one is a single click away
+and the default button is a merge commit. The fast-forward in the last row is not affected:
+it is a push from the promotion workflow, not the merge button.
 
 **Size**: if you cannot describe the change in two sentences, split it. A reviewer who
 opens eight hundred lines does not review them, they skim them and approve.

@@ -42,7 +42,7 @@ ready they are:
 | A periodic security review or pentest, and who pays | [`general/security.md`](general/security.md) |
 | Who is the contact for a security report | [`general/security.md`](general/security.md) |
 | Authentication inside the compose stack, so the journeys have something to log in to | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 4 |
-
+| How the promotion workflow moves `main` once `main` is protected. The `record` job pushes to it with the `GITHUB_TOKEN`, and a protected branch that requires a pull request refuses that push. Nobody has run it against a protected `main` yet | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 6, [`general/git-workflow.md`](general/git-workflow.md) ch. 3 |
 | How the frontend is served in the compose stack the journeys run against. The job points `BASE_URL` at the API, and nothing in the stack serves the React build | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 4, [`ops/containers.md`](ops/containers.md) ch. 7 |
 | How the frontend gets deployed. CD builds and ships the API image; the static build output has no job, no target and no rollback | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 5, [`ops/environments.md`](ops/environments.md) |
 
