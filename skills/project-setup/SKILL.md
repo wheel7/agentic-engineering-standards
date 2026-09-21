@@ -155,18 +155,25 @@ and why.
 7. **CI/CD** per `@.standards/ops/ci-cd.md`: the workflows, with `submodules: recursive`
    in every checkout. CD triggers on a successful CI run, never on push, or a red test
    will not stop a deploy.
-8. **Branches and protection** per `@.standards/general/git-workflow.md`: `main` and
-   `develop`, both protected, with the required checks on each. Ask whether this project
-   has more than one developer, because that decides whether a review is required or
-   whether the checks carry it alone. Working alone changes who approves, not whether the
-   protection is on.
+8. **Branch and protection** per `@.standards/general/git-workflow.md`: one long-lived
+   branch, `main`, protected, with the required checks on it. There is no `develop`. Ask
+   whether this project has more than one developer, because that decides whether a review
+   is required or whether the checks carry it alone. Working alone changes who approves, not
+   whether the protection is on, and not whether a change goes through a pull request.
 
-   Three repository settings go with this, and none of them is the GitHub default:
-   `develop` as the default branch, squash merging only with the pull request title as the
-   commit title, and deleting the branch after a merge. Do the default branch first. While
-   it is `main`, CD and the promotion workflow do not exist for GitHub, `Closes #n` does
-   nothing, and the first pull request gets merged with a merge commit. Check with
-   `gh workflow list`, which has to show all four workflows once they are on `develop`.
+   Two repository settings go with this, and neither is the GitHub default: squash merging
+   only, with the pull request title as the commit title, and deleting the branch after a
+   merge. Set them before the first pull request, or it goes in as a merge commit.
+
+   The very first commits are the exception to "nobody pushes to `main`", because an empty
+   repository has nothing to open a pull request against. Put the scaffold on a feature
+   branch and open a pull request for it all the same: that run is the first proof that CI
+   works on a clean runner, which it usually does not. After the merge, check with
+   `gh workflow list` that GitHub knows all four workflows.
+
+   Tell the developer how it works from here, because it is two decisions and people
+   expect one: merging a pull request puts code in `main` and builds an image, and nothing
+   goes live until they run the Promote workflow with the commit they want.
 
    GitHub refuses branch protection on a private repository on a free plan. When that
    happens, do not work around it. Say so, record it in the project `CLAUDE.md` as a

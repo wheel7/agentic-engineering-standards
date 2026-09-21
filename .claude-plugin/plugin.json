@@ -1,7 +1,7 @@
 {
   "name": "wheel7",
   "displayName": "Wheel7 Engineering Standards",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Engineering standards for .NET and React, plus the skills that apply them: setting up a project, adding a feature, building a component.",
   "author": {
     "name": "Wheel7",

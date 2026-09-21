@@ -176,10 +176,10 @@ and feature switches come from the environment, through environment variables.
 required reviewers on production. A production secret exists in exactly one place and is
 never reused anywhere.
 
-The promotion flow that follows from this: a green CI run on `develop` deploys to test
-on its own, and acceptance and production are deliberate promotions of that same image.
-Only `develop` builds; `main` records what is live and is fast-forwarded to the commit
-that went to production. See [`ci-cd.md`](ci-cd.md) and
+The promotion flow that follows from this: a green CI run on `main` deploys to test on its
+own, and acceptance and production are deliberate promotions of that same image. `main` is
+the only branch that builds, and the `production` tag is moved to the commit that went to
+production, so it always says what is live. See [`ci-cd.md`](ci-cd.md) and
 [`../general/git-workflow.md`](../general/git-workflow.md).
 
 ---

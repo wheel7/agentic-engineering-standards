@@ -20,8 +20,8 @@ Two workflows, no more:
 
 | File | Runs on | Does |
 |---|---|---|
-| `.github/workflows/ci.yml` | every pull request, and pushes to `develop` and `main` | build, test, check, drive the journeys |
-| `.github/workflows/cd.yml` | a successful CI run | build the image, deploy to test |
+| `.github/workflows/ci.yml` | every pull request, and pushes to `main` | build, test, check, drive the journeys |
+| `.github/workflows/cd.yml` | a successful CI run on `main` | build the image, deploy to test |
 | `.github/workflows/promote.yml` | a person, deliberately | deploy an existing image to acceptance or production |
 
 Read the second row carefully. CD does **not** trigger on push. If it did, the two
@@ -29,9 +29,9 @@ workflows would run side by side and a failing test would not stop the deploy. C
 explains the wiring.
 
 The branches those triggers refer to come from
-[`../general/git-workflow.md`](../general/git-workflow.md): `develop` is what goes live
-next and is the only branch that builds, `main` records what is live. Environments come
-from [`environments.md`](environments.md).
+[`../general/git-workflow.md`](../general/git-workflow.md): `main` is what goes live
+next and the only branch that builds, and the `production` tag records what is live.
+Environments come from [`environments.md`](environments.md).
 
 Three files is the ceiling. Five workflows that call each other is something nobody reads
 any more.
@@ -46,7 +46,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [develop, main]
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -298,9 +298,10 @@ production serves. Not decided yet.
 
 ## 5. CD
 
-The deploy hangs off the CI run, not off the push. A green run on `develop` goes to test
-on its own. A green run on `main` is a hotfix and goes to production, because that is the
-only reason anything lands on `main` from outside this pipeline.
+The deploy hangs off the CI run, not off the push. A green run on `main` produces an image
+and, where there is a test environment, goes to test on its own. Nothing reaches acceptance
+or production from here. Those are promotions, chapter 6, and a production fix takes the
+same road as any other change: a pull request, a green run, a promotion.
 
 > **Still to be decided: deploying the frontend.** Everything below builds and ships the
 > API image. The frontend's build output is static files, and there is no job yet that
@@ -332,8 +333,8 @@ jobs:
   image:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      (github.event.workflow_run.head_branch == 'develop' ||
-       github.event.workflow_run.head_branch == 'main')
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -356,22 +357,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # Leave this job out while the project has no test environment. The image is still built
+  # for every commit on main, because a promotion rolls out an image that already exists.
   test:
     needs: image
-    if: github.event.workflow_run.head_branch == 'develop'
     uses: ./.github/workflows/deploy.yml
     with:
       sha: ${{ github.event.workflow_run.head_sha }}
       environment: test
-    secrets: inherit
-
-  production:
-    needs: image
-    if: github.event.workflow_run.head_branch == 'main'
-    uses: ./.github/workflows/deploy.yml
-    with:
-      sha: ${{ github.event.workflow_run.head_sha }}
-      environment: production
     secrets: inherit
 ```
 
@@ -460,17 +453,14 @@ So, without exception:
 
 Two more things that are easy to miss. `types: [completed]` fires on failure and
 cancellation as well, so the `conclusion == 'success'` guard is what actually does the
-work. And the branch guard keeps CI runs from pull requests out of it, because those
-carry the source branch as their head, not `develop` or `main`.
+work. And the guard on the event and the branch keeps CI runs from pull requests out of it.
+The branch alone is not enough: a pull request from a fork whose branch is also called
+`main` carries `main` as its head.
 
 A workflow only triggers `workflow_run` once its file exists on the default branch, so
 this wiring does nothing until it is merged. Test it by merging it, not by watching a PR.
-
-That is why the default branch has to be `develop`, see
-[`../general/git-workflow.md`](../general/git-workflow.md). With `main` as the default, CD
-and the promotion workflow do not exist for GitHub until `main` has their files, and `main`
-only moves when the promotion workflow runs. The way to notice is `gh workflow list`: a
-repository whose default is still `main` shows CI and nothing else.
+`gh workflow list` shows what GitHub knows about. Right after the merge it has to list all
+four workflows.
 
 ### The smoke test
 
@@ -486,8 +476,12 @@ minute or two, catches that class of failure while you are still looking at the 
 ## 6. Promotion
 
 Acceptance and production are deliberate acts. The same image that CI built for a commit
-on `develop` is rolled out again, never rebuilt, so what serves customers is byte for byte
+on `main` is rolled out again, never rebuilt, so what serves customers is byte for byte
 what passed the tests.
+
+Merging a pull request and promoting are two separate decisions, and the second never
+follows from the first by itself. You can merge five changes and promote the last one, or
+promote the one before it.
 
 ```yaml
 name: Promote
@@ -521,42 +515,60 @@ jobs:
     if: inputs.environment == 'production'
     runs-on: ubuntu-latest
     steps:
-      # The promoted commit with its history, not the tip of the default branch at depth
-      # one: a push can only move main to a commit this checkout actually has.
+      # The promoted commit, not the tip of the default branch: a push can only point a tag
+      # at a commit this checkout actually has.
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.sha }}
-          fetch-depth: 0
 
-      - name: Point main at what is live
-        run: git push origin ${{ inputs.sha }}:main
+      # Forced on purpose. The tag is a pointer that moves, and on a rollback it moves back.
+      - name: Point the production tag at what is live
+        run: git push --force origin ${{ inputs.sha }}:refs/tags/production
 ```
 
 `environment:` on the deploy job is what asks for approval, so a promotion to production
 waits for whoever is listed on that GitHub Environment.
 
-### Why main is fast-forwarded and not merged
+### Why a tag records what is live
 
-That last step moves `main` to the commit that just went live, so `git log main` answers
-what is running without anybody maintaining it.
+That last step moves the `production` tag to the commit that just went live. So
+`git log production` answers what is running, and `git log production..main` answers what
+is merged and waiting, without anybody maintaining it.
 
-It is a fast-forward on purpose. A merge commit would give `main` a SHA that no image was
-ever built for, and then the tag on the running container points at a commit that is not
-the one `main` says is live.
+It is a tag and not a branch because of what it has to do. It points at one commit, nobody
+ever commits to it, and on a rollback it has to move backwards. A branch that is only ever
+fast-forwarded cannot do the last one: promoting the previous commit is not a fast-forward,
+so the step that records what is live would fail on the one day you are rolling back. A
+branch also has to be protected against pushes while the workflow has to push to it, and
+those two do not go together.
 
-**When that push fails, do not force it.** A rejected fast-forward means `main` has a
-commit that `develop` does not: a hotfix that was never merged back. Deploying over it
-would ship the bug you already fixed. Merge `main` into `develop`, let CI run, and promote
-again.
+The push is forced because moving a tag always is. That is safe for this one tag and for
+no other: `production` is a pointer by agreement, written in
+[`../general/git-workflow.md`](../general/git-workflow.md), and the promotion workflow is
+the only thing that moves it. Never move it by hand, and never force anything else.
+
+The history of what was live when is the list of Promote runs in the Actions tab, with who
+started each one and who approved it. The tag only says where things stand now.
+
+### Rolling back
+
+Promote the previous commit. Its image still exists, so nothing is built, and the tag moves
+back with it. Look the commit up with `git log production` before you promote something
+new, not after.
+
+Migrations do not roll back with it. The old version runs against the new schema, which
+works because of the expand and contract rule in [`database.md`](database.md), and for no
+other reason.
 
 ### Why this does not loop
 
-Pushing to `main` triggers CI, which triggers CD, which would deploy again. It does not,
-because a push made with the automatic `GITHUB_TOKEN` does not start a new workflow run.
-That is a deliberate GitHub behavior to stop exactly this recursion.
+Moving the tag does not start a run. CI listens to pushes to the `main` branch and to pull
+requests, and a tag is neither. And a push made with the automatic `GITHUB_TOKEN` does not
+start a new workflow run in any case, which is a deliberate GitHub behavior to stop
+recursion.
 
 It also means the opposite is worth knowing: swap that token for a personal access token
-or an App token and the loop comes back.
+or an App token, and anything that does listen to tags will run.
 
 ---
 
@@ -603,8 +615,8 @@ What has to be tested before any of this is worth running is in
 2. `submodules: recursive` in every checkout, plus the guard step that proves it worked.
 3. CD triggers on `workflow_run`, never on `push`, and every checkout and tag uses
    `head_sha`.
-4. `develop` is the default branch, `gh workflow list` shows all four workflows, and there
-   is branch protection on `main` and `develop` with the checks from chapter 8.
+4. `gh workflow list` shows all four workflows, and there is branch protection on `main`
+   with the checks from chapter 8.
 5. A GitHub Environment per deployed environment, with reviewers on acceptance and
    production and its own secrets. See [`environments.md`](environments.md).
 6. OIDC set up for the deploy, no static keys.

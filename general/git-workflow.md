@@ -6,57 +6,66 @@ Applies to every project, whatever the stack.
 
 ## 1. Branching
 
-GitFlow without the ceremony. Four kinds of branch, and two of them are long-lived:
+One long-lived branch, and short branches that land on it through a pull request.
 
 | Branch | Is | Branches from |
 |---|---|---|
-| `main` | what is live in production | nothing, it is the root |
-| `develop` | what goes live next | - |
-| `feature/*` | one change | `develop` |
-| `hotfix/*` | a production fix that cannot wait for `develop` | `main` |
+| `main` | what goes live next | nothing, it is the root |
+| `feature/*` | one change | `main` |
 
-**`develop` is the default branch on GitHub**, not `main`. That is a setting, and it is the
-first one to change in a new repository, because GitHub hangs more on the default branch
-than its name suggests:
+| Tag | Is | Moved by |
+|---|---|---|
+| `production` | the commit that is live | the promotion workflow, and nothing else |
 
-- A workflow triggered by `workflow_run` or `workflow_dispatch` only exists for GitHub once
-  its file is on the default branch, and it always runs the version that is there. With
-  `main` as the default, CD and the promotion workflow do not exist until `main` has them,
-  and `main` only moves when the promotion workflow runs. The pipeline can never start. And
-  if it could, every change to a workflow would only take effect after the next production
-  deploy.
-- `Closes #12` in a pull request only closes the issue on a merge into the default branch.
-- A new pull request targets the default branch, and that should be `develop`, because
-  nothing but a hotfix is ever aimed at `main`.
-- Dependabot security updates look at the default branch.
+**Landing a change and going live are two decisions.** Merging a pull request says this
+code is right and may be in `main`. Promoting a commit says this version may be live now.
+Neither follows from the other: you can merge five changes and promote the last one, or
+promote the one before it.
 
-`main` loses nothing by this. It stays what the table says: a record of what is live.
+**Why not GitFlow.** An earlier version of this document had `develop` for what goes live
+next and `main` for what is live, with the promotion workflow fast-forwarding `main`
+after every production deploy. The first project that used it paid for the second branch
+four times in its first week, and got nothing back for it:
 
-**No `release/*` branch** until you actually need one. It earns its keep only when a
-release has to be stabilized while `develop` carries on with the next thing. If every
-change flows straight through, the release branch is a second copy of `develop` that
-somebody has to keep synchronized.
+- CD and the promotion workflow only exist for GitHub once their files are on the default
+  branch. With `main` as the default and `main` only moving through the promotion
+  workflow, the pipeline could not start at all.
+- `Closes #12` only works on a merge into the default branch, and a new pull request aims
+  at it, so both pointed at the branch nobody merges into.
+- A rollback is a promotion of an older commit, and an older commit is not a fast-forward,
+  so the step that recorded what is live would have failed exactly when it mattered.
+- "Nobody pushes to `main`" and "the promotion workflow pushes to `main`" cannot both be
+  true once the branch is protected.
 
-**Naming**: `feature/1234-short-description`, `hotfix/1234-short-description`. Ticket
-number first, so the branch sorts and searches by it.
+A branch is the wrong tool for "which commit is live". That is a pointer to one commit that
+has to be able to move backwards, which is what a tag is.
+
+**No `release/*` and no `hotfix/*` branch** until you actually need one. A production fix
+is a change like any other: a pull request into `main`, promoted as soon as it is merged.
+That only stops working when `main` holds something that must not go live yet, and the
+first answer to that is a switch, see below, not a branch. If it happens anyway, branch from
+the `production` tag, fix it there, promote that commit, and bring the fix into `main`
+with a pull request straight after.
+
+**Naming**: `feature/1234-short-description`. Ticket number first, so the branch sorts and
+searches by it.
 
 **A branch lives days, not weeks.** A feature branch that has been open long enough to
-need a rebase against a moved `develop` was too big when it started. Split it: the part
-that can land behind a switch goes first.
+need a rebase against a moved `main` was too big when it started. Split it: the part that
+can land behind a switch goes first. With one branch this matters more, not less, because
+everything in `main` is one promotion away from a customer.
 
-**Nobody pushes straight to `main` or `develop`.** Including you. Especially you, see
-chapter 4.
+**Nobody pushes straight to `main`.** Including you. Especially you, see chapter 4.
 
-### What the branches mean for the pipeline
+### What this means for the pipeline
 
-Only `develop` builds. `main` is a record, not a trigger. That keeps the artifact the
-thing that gets promoted, rather than the code, which is the trap when GitFlow meets
-continuous delivery. The full wiring is in [`../ops/ci-cd.md`](../ops/ci-cd.md).
+Every green run on `main` produces an image, tagged with its commit. What gets promoted is
+that image, never the code, so production runs byte for byte what passed the tests. The full
+wiring is in [`../ops/ci-cd.md`](../ops/ci-cd.md).
 
-After a production deploy, `main` is fast-forwarded to the commit that was deployed. It
-therefore always says what is live, without anybody having to remember. When that
-fast-forward fails, there is a hotfix on `main` that was never merged back into
-`develop`, and you were about to deploy over it.
+After a production deploy the promotion workflow moves the `production` tag to the commit
+that went live. `git log production` therefore answers what is live, and
+`git log production..main` answers what is waiting, without anybody having to remember.
 
 ---
 
@@ -93,18 +102,15 @@ chapter 4.
 
 | From | To | How | Why |
 |---|---|---|---|
-| `feature/*` | `develop` | squash | one change, one commit, a history you can read |
-| `hotfix/*` | `main` | squash | same |
-| `develop` | `main` | fast-forward | keeps the SHA that was tested and deployed |
+| `feature/*` | `main` | squash | one change, one commit, a history you can read |
 
-That last row is the one that matters. A merge commit there would give `main` a SHA that
-no image was ever built for, and the tag on the deployed image would point somewhere else.
+One commit per change also means one image per change, and a history in which every line
+is something you could promote.
 
-**Make the repository enforce the first two rows.** In the repository settings, allow
-squash merging only, with the pull request title as the commit title, and turn on deleting
-the branch after a merge. With all three methods on, the wrong one is a single click away
-and the default button is a merge commit. The fast-forward in the last row is not affected:
-it is a push from the promotion workflow, not the merge button.
+**Make the repository enforce it.** In the repository settings, allow squash merging only,
+with the pull request title as the commit title, and turn on deleting the branch after a
+merge. With all three methods on, the wrong one is a single click away and the default
+button is a merge commit.
 
 **Size**: if you cannot describe the change in two sentences, split it. A reviewer who
 opens eight hundred lines does not review them, they skim them and approve.
@@ -112,7 +118,7 @@ opens eight hundred lines does not review them, they skim them and approve.
 **The template** lives in `.github/pull_request_template.md` and carries the test evidence
 block from [`testing.md`](testing.md).
 
-**Required checks** on `main` and `develop`, through branch protection:
+**Required checks** on `main`, through branch protection:
 
 - build succeeds
 - all tests pass, in every category that applies
@@ -175,8 +181,8 @@ notice that the rules were written for one person.
 
 ## 6. Versions and tags
 
-We do not give the application a version number. The image tag is the git SHA, and `main`
-records what is live. That is enough to answer every question anybody actually asks, which
+We do not give the application a version number. The image tag is the git SHA, and the
+`production` tag records what is live. That is enough to answer every question anybody actually asks, which
 is what is running and what changed since.
 
 Semantic versioning starts mattering the moment somebody else consumes what you build, so

@@ -42,7 +42,6 @@ ready they are:
 | A periodic security review or pentest, and who pays | [`general/security.md`](general/security.md) |
 | Who is the contact for a security report | [`general/security.md`](general/security.md) |
 | Authentication inside the compose stack, so the journeys have something to log in to | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 4 |
-| How the promotion workflow moves `main` once `main` is protected. The `record` job pushes to it with the `GITHUB_TOKEN`, and a protected branch that requires a pull request refuses that push. Nobody has run it against a protected `main` yet | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 6, [`general/git-workflow.md`](general/git-workflow.md) ch. 3 |
 | How the frontend is served in the compose stack the journeys run against. The job points `BASE_URL` at the API, and nothing in the stack serves the React build | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 4, [`ops/containers.md`](ops/containers.md) ch. 7 |
 | How the frontend gets deployed. CD builds and ships the API image; the static build output has no job, no target and no rollback | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 5, [`ops/environments.md`](ops/environments.md) |
 
@@ -129,7 +128,8 @@ nobody goes back to read.
 | Deep pages get slow | move to cursor-based pagination | [`general/api-contracts.md`](general/api-contracts.md) ch. 4 |
 | You publish something somebody else consumes | semantic versioning, and reconsider Conventional Commits | [`general/git-workflow.md`](general/git-workflow.md) ch. 2 and 6 |
 | Infrastructure gets crowded | split off `.Persistence`, and `.Migrations` if they run on their own | [`dotnet/solution-layout.md`](dotnet/solution-layout.md) ch. 3 |
-| A release needs stabilizing while `develop` carries on | add a `release/*` branch | [`general/git-workflow.md`](general/git-workflow.md) ch. 1 |
+| A release needs stabilizing while `main` carries on, or production needs a fix while `main` holds something that must not go live | branch from the `production` tag, and ask first why a switch did not cover it | [`general/git-workflow.md`](general/git-workflow.md) ch. 1 |
+| The Promote workflow has run for the first time | check that the `production` tag moved, and that a rollback moves it back. Neither has ever been run | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 6 |
 | Production carries something you would be called about at night | move it off the shared host | [`ops/environments.md`](ops/environments.md) ch. 5 |
 | Somebody outside the team signs off on releases | add the acceptance environment | [`ops/environments.md`](ops/environments.md) ch. 1 |
 | `EFCore.NamingConventions` catches up with the EF Core major | drop the manual snake_case fallback | [`ops/database.md`](ops/database.md) ch. 1 |
