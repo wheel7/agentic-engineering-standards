@@ -113,7 +113,20 @@ merge. With all three methods on, the wrong one is a single click away and the d
 button is a merge commit.
 
 **Size**: if you cannot describe the change in two sentences, split it. A reviewer who
-opens eight hundred lines does not review them, they skim them and approve.
+opens eight hundred lines does not review them, they skim them and approve. Working alone
+the measure is different, see chapter 4.
+
+**Do not stack pull requests.** A pull request branches from `main`, never from the branch
+of another pull request that is still open. Squash merging turns the pull request below into
+one new commit on `main`, and git no longer recognizes the commits the one above was built
+on: it tries to apply them a second time and conflicts with its own foundation. The first
+project stacked three and the third one conflicted the moment the first two were merged.
+
+If a change needs another one that is not merged yet, wait for it, or make them one pull
+request. If a stack exists anyway, replay the top branch's own commits onto `main` after the
+merge, `git rebase --onto main <old base> <branch>`, and push the result as a new branch
+with a new pull request. That rewrites history, and the only thing this repository ever
+force-pushes is the `production` tag, see [`../ops/ci-cd.md`](../ops/ci-cd.md).
 
 **The template** lives in `.github/pull_request_template.md` and carries the test evidence
 block from [`testing.md`](testing.md).
@@ -164,6 +177,17 @@ every check that was going to be caught socially now is not going to be caught a
 - Required reviewers drops to zero. There is nobody to ask.
 - You read your own diff in the pull request before merging it. Not the summary, the diff.
   That is the review, and it is the only one there is.
+- **One pull request per feature**, not per step. The two-sentence rule in chapter 3 is
+  there to protect a reviewer who did not write the change. Alone, and certainly with an
+  agent writing it, the person reading is the one who asked for the feature, and they read
+  it as one thing: its API, its screens and its tests together. Split into a pull request
+  per step, the same feature is read three times, each time without the other two parts,
+  and the steps depend on each other, which is how they end up stacked. So: one branch and
+  one pull request for the feature, with a commit per step inside it, so the diff can still
+  be read a step at a time. Squash merging makes it one line in the history anyway.
+- What stays separate is what does not belong to the feature: an update of the
+  `.standards` submodule, see chapter 5, and a change that stands on its own, such as a
+  fix found along the way that other work does not depend on.
 
 **What does not change:**
 
@@ -188,7 +212,7 @@ does, not what the description says it does. See
 |---|---|
 | Required reviewers | one, and not the author |
 | Self-approval on a pull request | off |
-| Pull request size | something worth arguing about, because someone else pays for it |
+| Pull request size | something worth arguing about, because someone else pays for it; the two-sentence rule replaces one pull request per feature |
 | A convention that lived in your head | written down here or in the project `CLAUDE.md` |
 
 Put a reminder on it. The moment a team forms is exactly the moment nobody has time to
