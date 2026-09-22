@@ -98,6 +98,22 @@ cost.
 Id = Guid.CreateVersion7();
 ```
 
+**Tell EF Core the database does not make the key.** By convention EF treats a `Guid` key
+as generated on add, so it reads a key that is already filled in as "this row exists". That
+goes unnoticed as long as every new entity goes through `Add`. The first one that reaches
+the context through a navigation, a history row added to a collection on its parent, is
+saved as an `UPDATE`, touches no row, and comes back as a
+`DbUpdateConcurrencyException`, a 500. Switch it off once, for every entity, at the end of
+`OnModelCreating`:
+
+```csharp
+foreach (var entity in modelBuilder.Model.GetEntityTypes())
+{
+    if (entity.FindPrimaryKey() is { Properties: [var key] } && key.ClrType == typeof(Guid))
+        key.ValueGenerated = ValueGenerated.Never;
+}
+```
+
 An ascending `int` is allowed too, but not for anything that ends up in a URL or an API
 response: that leaks the number of records and lets you guess other people's records.
 

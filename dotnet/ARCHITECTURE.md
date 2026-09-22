@@ -330,6 +330,7 @@ public sealed class GetTodoByIdQueryHandler
 ```csharp
 using TodoApp.Domain.Todos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace TodoApp.Infrastructure.Data;
 
@@ -350,6 +351,14 @@ public sealed class TodoDbContext : DbContext
         todo.Property(t => t.Title)
             .IsRequired()
             .HasMaxLength(200);
+
+        // Every id is made in code with Guid.CreateVersion7(), never by the database.
+        // See ../ops/database.md, "Keys".
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            if (entity.FindPrimaryKey() is { Properties: [var key] } && key.ClrType == typeof(Guid))
+                key.ValueGenerated = ValueGenerated.Never;
+        }
     }
 }
 ```
@@ -537,6 +546,23 @@ chapter 2. How the code gets there:
   ```
 
   The fixed detail is on purpose: the parser's own message names your internal types.
+- **400, a reference to something this user does not have**, such as a `materialId` in the
+  body that belongs to somebody else or was deleted. Not a 404: the resource the request is
+  about is fine, one of its fields is wrong, and a form wants to show that next to the field.
+  The handler throws an `InvalidReferenceException(field, message)` from
+  `.Application/Errors/`, with the field as the request body names it, and an
+  `InvalidReferenceExceptionHandler` in `.Api/Errors/` writes it as a validation problem:
+
+  ```csharp
+  ProblemDetails = new HttpValidationProblemDetails(
+      new Dictionary<string, string[]> { [invalid.Field] = [invalid.Message] })
+  {
+      Status = StatusCodes.Status400BadRequest,
+      Title = "One or more validation errors occurred."
+  }
+  ```
+
+  The same shape as every other validation error, so the frontend needs no second path.
 - **404** is a handler returning `null` or `false`. A record of another user is a 404 too,
   never a 403, because every repository method filters on the owner.
 - **409, it conflicts with what is already there**, such as a name that has to be unique.
@@ -545,7 +571,7 @@ chapter 2. How the code gets there:
   problem+json with `type` set to `https://<product-domain>/errors/<type>`. The frontend
   switches on that `type`. A unique index in the database backs the check up for a race.
 
-Register both handlers with `AddExceptionHandler<...>()`, after `AddProblemDetails()`.
+Register the handlers with `AddExceptionHandler<...>()`, after `AddProblemDetails()`.
 
 ### 4.11 JSON on the wire
 
@@ -600,6 +626,8 @@ Further conventions:
   or returned in a response is `required`, see 4.3.
 - A command that carries an id from the route is a `sealed record`, see 4.9.
 - A conflict is a `ConflictException`, never a status code picked in the endpoint, see 4.10.
+  A body field pointing at something the user does not have is an
+  `InvalidReferenceException`, a 400 on that field.
 - Every handler has one public method: `HandleAsync(request, CancellationToken)`.
 - Always pass a `CancellationToken`, all the way down to EF Core.
 - Commands may change state and call `SaveChangesAsync`; queries never do.
