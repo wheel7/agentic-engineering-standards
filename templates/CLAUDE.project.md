@@ -164,7 +164,7 @@ chmod 644 .certs/localhost.pem .certs/localhost.key
 - **Dependencies that must be running**: <database, message broker, mock services>
 - **Running backend tests**: `dotnet test`
 - **Running frontend tests**: `npm test` in `src/<Product>.Web`
-- **Lint and typecheck**: `npm run lint` / `npx tsc --noEmit` in `src/<Product>.Web`
+- **Lint and typecheck**: `npm run lint` / `npx tsc -b` in `src/<Product>.Web`
 - **Running the journeys**: `npx playwright test` in `tests/<Product>.E2ETests`
 
 ### Hosting and environments

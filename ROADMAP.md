@@ -85,6 +85,15 @@ worth covering, how many, and what to do about a flaky one is not written down a
 These are not marked in any document, because they are about the shape of the repository
 rather than about a rule inside it.
 
+### Every endpoint in Program.cs
+
+[`dotnet/ARCHITECTURE.md`](dotnet/ARCHITECTURE.md) puts every endpoint in `Program.cs`. The
+first project had thirteen after its second feature, and `Program.cs` becomes the one file
+every feature edits. The usual way out is a static class per feature with a
+`Map<Feature>Endpoints(this IEndpointRouteBuilder)` extension and a `MapGroup` per resource,
+which also puts the route prefix and the OpenAPI tag in one place. Decide it before the
+third feature of a project, not after the tenth.
+
 ### The eager imports are heavy
 
 A `CLAUDE.md` built from [`templates/CLAUDE.project.md`](templates/CLAUDE.project.md)

@@ -206,18 +206,23 @@ namespace TodoApp.Application.Todos;
 
 public sealed class TodoDto : IAuditableDto
 {
-    public Guid Id { get; init; }
-    public string Title { get; init; } = string.Empty;
-    public bool IsCompleted { get; init; }
+    public required Guid Id { get; init; }
+    public required string Title { get; init; }
+    public required bool IsCompleted { get; init; }
 
-    public Guid CreatedBy { get; init; }
-    public DateTime CreatedDate { get; init; }
-    public Guid? ModifiedBy { get; init; }
-    public DateTime? ModifiedDate { get; init; }
+    public required Guid CreatedBy { get; init; }
+    public required DateTime CreatedDate { get; init; }
+    public required Guid? ModifiedBy { get; init; }
+    public required DateTime? ModifiedDate { get; init; }
 }
 ```
 
 Never return domain entities from the API; always a DTO. A DTO that represents an auditable entity implements `IAuditableDto`, so the audit values travel in the same shape everywhere.
+
+**Every property is `required`**, in a DTO and in a command or query that is bound from a request body. The OpenAPI document reads it:
+
+- On a response, `required` is what makes the document say the field is always there. Without it every field is optional, and a client generated from the document has to check each one for a value that is never missing. [`../general/api-contracts.md`](../general/api-contracts.md) chapter 5 says a response always carries the field.
+- On a request, `required` makes a missing field a `400`. Without it a missing `int` arrives as `0` and a missing `bool` as `false`, which are valid values, so nothing notices.
 
 ### 4.4 Application: command + handler
 
@@ -228,7 +233,7 @@ namespace TodoApp.Application.Todos;
 
 public sealed class CreateTodoCommand
 {
-    public string Title { get; init; } = string.Empty;
+    public required string Title { get; init; }
 }
 ```
 
@@ -454,6 +459,118 @@ app.Run();
 }
 ```
 
+### 4.9 Changing and removing: the id comes from the route
+
+An update binds the fields from the body and the id from the route. The command is a
+`sealed record`, so the endpoint can put the id in with `with`, and `[JsonIgnore]` keeps it
+out of the body and out of the OpenAPI document:
+
+```csharp
+public sealed record UpdateTodoCommand
+{
+    [JsonIgnore]
+    public Guid Id { get; init; }
+
+    public required string Title { get; init; }
+}
+```
+
+```csharp
+app.MapPut("/todos/{id:guid}", async (
+    Guid id,
+    UpdateTodoCommand command,
+    UpdateTodoCommandHandler handler,
+    CancellationToken ct) =>
+{
+    var result = await handler.HandleAsync(command with { Id = id }, ct);
+    return result is null ? Results.NotFound() : Results.Ok(result);
+});
+```
+
+- The handler loads the entity with a **tracked** repository method, changes it through a
+  method on the entity, and saves. It returns `null` when there is no such entity for this
+  user, and the endpoint makes that a `404`.
+- An update returns `200` with the DTO, so the client has what the server made of it.
+- A delete returns `204`, or `404` when there was nothing to delete.
+- When create and update take the same fields, put them on an `abstract record` both
+  inherit from, with the validation on it once.
+
+### 4.10 Errors: 400, 404 and 409
+
+What goes over the wire is in [`../general/api-contracts.md`](../general/api-contracts.md)
+chapter 2. How the code gets there:
+
+- **400, a malformed request**, is validation at the edge: data annotations on the command,
+  and `IValidatableObject` for a rule across fields such as a minimum above a maximum. Put
+  the error on the member a user corrects. The keys are rewritten to the request body's
+  camelCase names in one `CustomizeProblemDetails`, so every endpoint gets that for free.
+- **400, a body that cannot be read**, invalid JSON or a missing `required` field, needs a
+  handler of its own. In Development ASP.NET throws `BadHttpRequestException` instead of
+  answering, and the exception handler turns it into a `500`. So in every project:
+
+  ```csharp
+  public sealed class BadRequestExceptionHandler : IExceptionHandler
+  {
+      private readonly IProblemDetailsService _problemDetails;
+
+      public BadRequestExceptionHandler(IProblemDetailsService problemDetails) => _problemDetails = problemDetails;
+
+      public async ValueTask<bool> TryHandleAsync(
+          HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
+      {
+          if (exception is not BadHttpRequestException badRequest)
+              return false;
+
+          httpContext.Response.StatusCode = badRequest.StatusCode;
+          return await _problemDetails.TryWriteAsync(new ProblemDetailsContext
+          {
+              HttpContext = httpContext,
+              ProblemDetails =
+              {
+                  Status = badRequest.StatusCode,
+                  Title = "The request could not be read.",
+                  Detail = "The body is not valid JSON, or a required field is missing."
+              }
+          });
+      }
+  }
+  ```
+
+  The fixed detail is on purpose: the parser's own message names your internal types.
+- **404** is a handler returning `null` or `false`. A record of another user is a 404 too,
+  never a 403, because every repository method filters on the owner.
+- **409, it conflicts with what is already there**, such as a name that has to be unique.
+  The handler throws a `ConflictException(type, title, detail)` that lives in
+  `.Application/Errors/`, and a `ConflictExceptionHandler` in `.Api/Errors/` writes it as
+  problem+json with `type` set to `https://<product-domain>/errors/<type>`. The frontend
+  switches on that `type`. A unique index in the database backs the check up for a race.
+
+Register both handlers with `AddExceptionHandler<...>()`, after `AddProblemDetails()`.
+
+### 4.11 JSON on the wire
+
+```csharp
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+```
+
+- **Strict numbers**, because the web default also accepts a number as a string, and the
+  OpenAPI document then types every integer as "number or string".
+- **Enums by name**, `"Sometimes"` and not `1`. It matches how
+  [`../ops/database.md`](../ops/database.md) stores them, a reordered enum breaks nothing,
+  and the contract reads. An integration test that reads a response with its own
+  `JsonSerializerOptions` needs the same converter, or it cannot read what the API wrote.
+
+### After a change to an endpoint or a DTO
+
+The OpenAPI document is generated on build and committed, and the frontend generates its
+client from it, see [`../general/api-contracts.md`](../general/api-contracts.md) chapter 6.
+So a change to the contract is three files in the same pull request: the code, the
+document, and the regenerated client. CI fails on either of the last two being out of date.
+
 ### Migrations
 
 ```bash
@@ -479,7 +596,10 @@ You run `database update` locally. On test and production, migrations go through
 Further conventions:
 
 - All classes are `sealed`, unless inheritance is really needed.
-- Commands, queries and DTOs use `init` properties.
+- Commands, queries and DTOs use `init` properties, and every property bound from a request
+  or returned in a response is `required`, see 4.3.
+- A command that carries an id from the route is a `sealed record`, see 4.9.
+- A conflict is a `ConflictException`, never a status code picked in the endpoint, see 4.10.
 - Every handler has one public method: `HandleAsync(request, CancellationToken)`.
 - Always pass a `CancellationToken`, all the way down to EF Core.
 - Commands may change state and call `SaveChangesAsync`; queries never do.
@@ -498,7 +618,9 @@ Further conventions:
 6. Update the EF configuration and add a migration (if needed).
 7. Register the handler in `Program.cs` (`AddScoped`).
 8. Add the endpoint in `Program.cs`.
-9. Write a unit test for the handler.
+9. Build, and regenerate the frontend client from the OpenAPI document. Commit both.
+10. Write a unit test for the handler, and an integration test for the endpoint, including
+    that another user's record is a 404.
 
 ---
 

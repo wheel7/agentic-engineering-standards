@@ -62,6 +62,11 @@ In `src/<Product>.Application/<Feature>/`:
 Reuse `{Entity}Dto` if it already exists, otherwise create it in the same folder.
 Never return a domain entity from the API.
 
+Every property is `required`, on the DTO and on a command bound from a request body. See
+chapter 4.3 of `@.standards/dotnet/ARCHITECTURE.md` for why: without it the OpenAPI
+document makes every response field optional, and a missing number in a request silently
+arrives as zero.
+
 ### 5. Infrastructure
 
 Implement the repository method in `src/<Product>.Infrastructure/<Feature>/`.
@@ -85,15 +90,35 @@ In `src/<Product>.Api/Program.cs`: `builder.Services.AddScoped<{Name}Handler>();
 Also in `Program.cs`. The endpoint contains **no logic**: request in, call the handler,
 HTTP result back.
 
-- Command: `Results.Created(...)` or `Results.NoContent()`.
+- Create: `Results.Created(...)` with the DTO.
+- Update: the id comes from the route, `command with { Id = id }`, see chapter 4.9 of
+  `@.standards/dotnet/ARCHITECTURE.md`. `Results.Ok(...)` with the DTO, or
+  `Results.NotFound()` when the handler returns `null`.
+- Delete: `Results.NoContent()`, or `Results.NotFound()` when there was nothing to delete.
 - Query: `Results.Ok(...)`, or `Results.NotFound()` if the result is `null`.
+- A conflict, such as a name that must be unique, is a `ConflictException` thrown by the
+  handler, never a status code chosen in the endpoint. See chapter 4.10.
 - Pass the `CancellationToken` along.
 
-### 9. Unit test
+Check before the first endpoint of a project that `BadRequestExceptionHandler` and
+`ConflictExceptionHandler` are registered, and that JSON uses strict numbers and enums by
+name. Chapter 4.10 and 4.11. Without the first, a missing field is a `500` in Development.
+
+### 9. Regenerate the contract and the client
+
+Build the API, which rewrites the committed OpenAPI document, and regenerate the frontend
+client from it with the project's script (see its `CLAUDE.md`). Commit both with the code.
+CI fails when either is out of date, and a frontend that compiles against an old client is
+a frontend that breaks at runtime.
+
+### 10. Tests
 
 See `@.standards/dotnet/testing.md`. Mock the repository with Moq, call `HandleAsync`
 directly, check the result **and** verify the interactions (for a command: something
 was saved; for a query: nothing was saved).
+
+Add an integration test for every endpoint, and one that proves another user's record is a
+`404` for reading, changing and deleting, and is left untouched.
 
 ## Wrapping up
 

@@ -46,27 +46,48 @@ description: DRAFT - adds a new React component following our (not yet settled) 
 - Data access (fetch, caching) in a hook or in the feature's `api.ts`, not spread
   through the component.
 - Use the data access mechanism this project already uses.
+- Request and response types come from the client generated from the OpenAPI document.
+  Never write a type for something the API sends or receives.
 
-### 4. Accessibility
+### 4. Errors from the API
+
+The API answers in the shapes from `@.standards/general/api-contracts.md` chapter 2, and a
+form shows them where the user can act on them:
+
+- A `400` with `errors` goes on the fields it names; the keys are the request body's field
+  names, so they match the form's.
+- A `409` is recognized by its `type`, never by `title` or `detail`, and goes on the field
+  that caused it, in the API's own words from `detail`.
+- Anything else goes in one message above the buttons, with nothing about what went wrong
+  inside the server.
+- Validate in the form too, for speed, with the same limits as the API. The API stays the
+  authority.
+
+### 5. Accessibility
 
 - Use semantic elements (`button`, not a `div` with `onClick`).
 - Make sure interactive elements have an accessible name - that is also what the
   tests select on.
 
-### 5. Test
+### 6. Test
 
 See `@.standards/react/testing.md`. Test what the user sees and does:
 
 - Select on role, label or text - not on CSS classes or implementation details.
-- Cover at least the most important interaction.
+- Cover at least the most important interaction, and for a form: a field error from the
+  API, and that client-side validation stops a request from being sent.
+- Break the rule under test once on purpose and watch the test go red. A component test
+  that passes either way is easy to write by accident.
 
-### 6. Exporting
+### 7. Exporting
 
 Include the component in the feature's `index.ts` if it is used outside the feature.
 
 ## Wrapping up
 
-- Run the project's linter, the typecheck (`tsc --noEmit`) and the tests.
+- Run the project's linter, the typecheck and the tests. The typecheck is `tsc -b` in a
+  project whose `tsconfig.json` only holds references, which is what the Vite template
+  makes; `tsc --noEmit` checks nothing there and passes.
 - Report which files you added.
 - Report the test evidence in the format from `@.standards/general/testing.md`: the
   command you ran, the summary line it actually printed, which tests you added and what

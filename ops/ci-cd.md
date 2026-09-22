@@ -98,7 +98,7 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
-      - run: npx tsc --noEmit
+      - run: npx tsc -b
       - run: npm test
       - run: npm run build
       - run: npm audit --audit-level=high
