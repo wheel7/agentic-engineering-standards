@@ -136,7 +136,7 @@ nobody goes back to read.
 | The first breaking API change | `/v2` in the path, both versions side by side | [`general/api-contracts.md`](general/api-contracts.md) ch. 1 |
 | Deep pages get slow | move to cursor-based pagination | [`general/api-contracts.md`](general/api-contracts.md) ch. 4 |
 | You publish something somebody else consumes | semantic versioning, and reconsider Conventional Commits | [`general/git-workflow.md`](general/git-workflow.md) ch. 2 and 6 |
-| Infrastructure gets crowded | split off `.Persistence`, and `.Migrations` if they run on their own | [`dotnet/solution-layout.md`](dotnet/solution-layout.md) ch. 3 |
+| Infrastructure gets crowded | split off `.Persistence`, with the migrations; `.DbMigrator` then references it | [`dotnet/solution-layout.md`](dotnet/solution-layout.md) ch. 3 |
 | A release needs stabilizing while `main` carries on, or production needs a fix while `main` holds something that must not go live | branch from the `production` tag, and ask first why a switch did not cover it | [`general/git-workflow.md`](general/git-workflow.md) ch. 1 |
 | The Promote workflow has run for the first time | check that the `production` tag moved, and that a rollback moves it back. Neither has ever been run | [`ops/ci-cd.md`](ops/ci-cd.md) ch. 6 |
 | Production carries something you would be called about at night | move it off the shared host | [`ops/environments.md`](ops/environments.md) ch. 5 |

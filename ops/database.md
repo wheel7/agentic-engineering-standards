@@ -404,6 +404,12 @@ dotnet ef migrations bundle \
 That produces a single executable that you run with a connection string. The runner needs
 no SDK for it and you can see exactly what is being executed.
 
+**Locally** the AppHost runs `.DbMigrator` before it starts the API: a worker that calls
+`Database.MigrateAsync()` and stops. That is not the application migrating at startup. It
+is a separate process that runs to completion first, the same order as the pipeline, and it
+never runs in a deployed environment. See
+[`../dotnet/solution-layout.md`](../dotnet/solution-layout.md) chapter 2.
+
 ---
 
 ## 7. Access and permissions

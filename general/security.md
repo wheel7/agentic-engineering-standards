@@ -9,8 +9,8 @@ Applies to every project, whatever the stack.
 **A secret never enters the repository.** Not in `appsettings.json`, not in a `.env`
 file, not in test data, not in a comment, not "temporarily".
 
-One documented exception: the local-only database password in `docker-compose.yml`, which
-guards a throwaway container on your own machine and is written down as such in
+One documented exception: the local-only database password in `docker-compose.yml` and in
+the AppHost, which guards a throwaway container on your own machine and is written down as such in
 [`../ops/containers.md`](../ops/containers.md). If you find yourself arguing that a second
 secret is also harmless, it is not.
 

@@ -23,7 +23,7 @@ where something can be subtly out of date.
 
 | Environment | Used by | Lives | Database |
 |---|---|---|---|
-| Development | the developer | the laptop, via compose | thrown away at will |
+| Development | the developer | the laptop, via Aspire | thrown away at will |
 | Test | the team, and CI | deployed | rebuilt on every deploy |
 | Acceptance | the business | deployed | persists, refreshed from production |
 | Production | customers | deployed | persists |

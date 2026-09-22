@@ -126,7 +126,7 @@ dotnet tool install --global dotnet-ef --version 10.*
 
 If you use the Package Manager Console in Visual Studio, also add `Microsoft.EntityFrameworkCore.Tools` to the Api project.
 
-PostgreSQL is our standard database. The conventions for column types, keys and migrations are in [`../ops/database.md`](../ops/database.md); running locally with `docker compose up` is in [`../ops/containers.md`](../ops/containers.md).
+PostgreSQL is our standard database. The conventions for column types, keys and migrations are in [`../ops/database.md`](../ops/database.md); running locally with `aspire run` is in [`../ops/containers.md`](../ops/containers.md).
 
 ---
 
@@ -409,6 +409,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Logs and traces for the Aspire dashboard, see ../ops/containers.md chapter 3.
+builder.AddServiceDefaults();
+
 // Database
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<AuditingInterceptor>();
@@ -604,7 +607,7 @@ dotnet ef migrations add InitialCreate --project src/TodoApp.Infrastructure --st
 dotnet ef database update             --project src/TodoApp.Infrastructure --startup-project src/TodoApp.Api
 ```
 
-You run `database update` locally. On test and production, migrations go through the pipeline and never at application startup; see [`../ops/database.md`](../ops/database.md) and [`../ops/ci-cd.md`](../ops/ci-cd.md).
+Locally, `aspire run` applies them through `.DbMigrator` before the API starts, see [`solution-layout.md`](solution-layout.md); `database update` is for the compose database only. On test and production, migrations go through the pipeline and never at application startup; see [`../ops/database.md`](../ops/database.md) and [`../ops/ci-cd.md`](../ops/ci-cd.md).
 
 ---
 

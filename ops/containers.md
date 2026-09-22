@@ -4,8 +4,9 @@ How we package .NET applications in a container and run them locally. The databa
 goes with it is covered in [`database.md`](database.md); building and publishing images
 in [`ci-cd.md`](ci-cd.md).
 
-> Goal: a new colleague can clone the repo, run `docker compose up` and has a working
-> application with a database. Without an installation guide.
+> Goal: a new colleague can clone the repo, run `aspire run` and has a working
+> application with a database, a way to look in it, and the logs of everything in one place.
+> Without an installation guide.
 
 ---
 
@@ -24,6 +25,7 @@ WORKDIR /src
 COPY ["src/TodoApp.Domain/TodoApp.Domain.csproj",                 "src/TodoApp.Domain/"]
 COPY ["src/TodoApp.Application/TodoApp.Application.csproj",       "src/TodoApp.Application/"]
 COPY ["src/TodoApp.Infrastructure/TodoApp.Infrastructure.csproj", "src/TodoApp.Infrastructure/"]
+COPY ["src/TodoApp.ServiceDefaults/TodoApp.ServiceDefaults.csproj", "src/TodoApp.ServiceDefaults/"]
 COPY ["src/TodoApp.Api/TodoApp.Api.csproj",                       "src/TodoApp.Api/"]
 RUN dotnet restore "src/TodoApp.Api/TodoApp.Api.csproj"
 
@@ -86,7 +88,95 @@ docker-compose*.yml
 
 ---
 
-## 3. Running locally with compose
+## 3. Running locally
+
+Two ways, for two purposes:
+
+| | Is for | Runs |
+|---|---|---|
+| **Aspire**, `aspire run` | a developer working on it | Postgres with pgAdmin, the migrations, the API and the frontend dev server, from source, with the dashboard |
+| **Compose**, `docker compose up` | the journeys, locally and in CI | Postgres and the API **image**, the way a deployed host runs it |
+
+Both put the API on the same port, so run one or the other.
+
+### With Aspire
+
+The entry point is `src/<Product>.AppHost`, and its `AppHost.cs` says what runs and in what
+order:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Not a secret, like the password in the compose file below. Fixed rather than generated,
+// because the volume keeps the password it was created with.
+var userName = builder.AddParameter("postgres-user", "todoapp");
+var password = builder.AddParameter("postgres-password", "localdev", secret: true);
+
+var postgres = builder.AddPostgres("postgres", userName, password)
+    .WithImageTag("18")
+    .WithVolume("todoapp-apphost-pgdata", "/var/lib/postgresql")
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithPgAdmin(pgAdmin => pgAdmin.WithLifetime(ContainerLifetime.Persistent));
+
+var database = postgres.AddDatabase("todoapp");
+
+var migrator = builder.AddProject<Projects.TodoApp_DbMigrator>("migrator")
+    .WithReference(database, connectionName: "DefaultConnection")
+    .WaitFor(database);
+
+var api = builder.AddProject<Projects.TodoApp_Api>("api")
+    .WithReference(database, connectionName: "DefaultConnection")
+    .WaitForCompletion(migrator)
+    .WithHttpHealthCheck("/health/ready");
+
+builder.AddViteApp("web", "../TodoApp.Web")
+    .WithNpm(installCommand: "ci")
+    .WithEndpoint("http", endpoint =>
+    {
+        endpoint.Port = 5000;          // the project's frontend port, see "Local ports"
+        endpoint.UriScheme = "https";
+        endpoint.IsProxied = false;
+    })
+    .WaitFor(api);
+
+builder.Build().Run();
+```
+
+What you get: the migrations run on every start before the API does, so a new migration
+needs nothing extra; pgAdmin to look in the database, linked from the dashboard; and the
+logs, traces and SQL of every process in one place. The projects behind it, `.AppHost`,
+`.DbMigrator` and `.ServiceDefaults`, are in
+[`../dotnet/solution-layout.md`](../dotnet/solution-layout.md) chapter 2.
+
+Points to watch, every one of them found the hard way:
+
+- **Not `WithDataVolume()` on Postgres 18.** It mounts `/var/lib/postgresql/data`, and from
+  18 the image refuses to start with a mount there, see the compose file below. Mount the
+  volume on `/var/lib/postgresql` with `WithVolume`, and pin the major with `WithImageTag`,
+  because Aspire's default image is not the version production runs.
+- **A fixed user and password.** Aspire generates a password when you do not give one and
+  keeps it in the AppHost's user secrets. The volume keeps the password it was created with,
+  so the day those secrets are gone, the database no longer lets anybody in.
+- **`connectionName: "DefaultConnection"`**, so the API and the migrator read the same
+  `ConnectionStrings:DefaultConnection` under Aspire as everywhere else.
+- **The frontend endpoint is fixed, HTTPS and not proxied.** By default Aspire gives Vite a
+  random port behind its own proxy, and the provider only redirects to the registered port.
+  Unproxied, Aspire passes the port to Vite as `--port`, and Vite serves HTTPS itself with
+  the certificate from "Local HTTPS" below.
+- **`npm ci`, not the default install.** Aspire runs `npm install` on every start, which
+  rewrites `package-lock.json` whenever the local npm differs from the one that wrote it.
+- **Persistent containers keep running** after `aspire run` stops, so the next start is
+  quick. They get a new host port on every start, so reach pgAdmin through the dashboard.
+- **The Aspire CLI**, `dotnet tool install --global aspire.cli`, with
+  `<AspireUseCliBundle>true</AspireUseCliBundle>` in the AppHost project and an
+  `aspire.config.json` in the root that points at it. Without the bundle the build warns
+  that features are missing.
+
+The API calls `builder.AddServiceDefaults()` for the logs and traces, after its own logging
+setup, because `ClearProviders()` would remove them again. It exports only when the AppHost
+sets `OTEL_EXPORTER_OTLP_ENDPOINT`, so the image and the tests are unaffected.
+
+### The compose stack
 
 `docker-compose.yml` in the repository root:
 
@@ -149,8 +239,9 @@ Points to watch:
   own machine and is in the repo on purpose. No other password belongs there;
   see [`../general/security.md`](../general/security.md).
 
-This compose file does not run migrations. Do that yourself locally, see
-[`database.md`](database.md).
+This compose file does not run migrations. The journeys job runs them before it starts the
+API, see [`ci-cd.md`](ci-cd.md); locally, `dotnet ef database update` against this database
+does the same.
 
 ### Local ports
 
@@ -172,15 +263,20 @@ One number has to show up in several places, and they have to agree:
 | Where | What |
 |---|---|
 | The frontend dev server | the frontend port, **strict**, so a taken port is an error and not a silent move |
-| `launchSettings.json` of the API | the API port, for `dotnet run` |
+| The `web` endpoint in `AppHost.cs` | the frontend port, unproxied |
+| `launchSettings.json` of the API | the API port, for Aspire and `dotnet run` |
 | `ports:` of the API in compose | the API port on the host side |
 | The API URL the frontend is configured with | the API port |
 | The CORS allowlist for development | the frontend origin, see [`../general/security.md`](../general/security.md) |
 | The application registration at the provider | the frontend origin, as callback and as logout URL |
 
-The API answers on the same port whether it runs in a container or under `dotnet run`, so
+The API answers on the same port under Aspire, under `dotnet run` and in a container, so
 the frontend never has to be pointed somewhere else depending on how you started the rest.
 Only the host side of the mapping is the project's own.
+
+The Aspire dashboard gets a fixed port too, in the AppHost's `launchSettings.json`, so it can
+be bookmarked. Take the one below the frontend port: 5047, 5048 and 5049 for dashboard,
+frontend and API. The dashboard is not registered anywhere, so nothing breaks when it moves.
 
 This is about development only. A deployed environment has hostnames, see
 [`environments.md`](environments.md).
@@ -211,7 +307,7 @@ as two PEM files, certificate and key, without a password.
 
 | Who | Gets the certificate from |
 |---|---|
-| The API under `dotnet run` | the certificate store, by itself. `launchSettings.json` only says `https://localhost:<port>` |
+| The API under Aspire or `dotnet run` | the certificate store, by itself. `launchSettings.json` only says `https://localhost:<port>` |
 | The API in compose | `.certs`, mounted read-only, through the Kestrel settings in the compose file above |
 | The frontend dev server and preview | the same two files in `.certs`, read in the bundler configuration |
 
@@ -288,8 +384,8 @@ A React application usually does not belong in a container here. The build outpu
 folder with static files; you put those on a CDN or on static hosting. A container with
 nginx in front of it is another part to patch without it solving anything.
 
-If the frontend does run along in compose for local development, then with the dev server
-and a bind mount, not with a production build.
+Locally the frontend is the dev server, started by the AppHost, see chapter 3. The journeys
+serve a production build, see [`ci-cd.md`](ci-cd.md).
 
 ---
 
@@ -298,8 +394,9 @@ and a bind mount, not with a production build.
 1. `Dockerfile` next to the entry point, build context is the root.
 2. `.dockerignore` present and up to date.
 3. Runtime image is chiseled and runs as non-root on port 8080.
-4. `docker compose up` gives a working application with a database, on HTTPS, on the
-   project's own port.
+4. `aspire run` gives a working application with a database, pgAdmin and the dashboard, on
+   HTTPS, on the project's own ports. `docker compose up` gives the database and the API
+   image, for the journeys.
 5. Configuration comes from environment variables, not from baked-in files.
 6. Logs go to stdout, health endpoints exist.
 7. Image is tagged on the git sha.

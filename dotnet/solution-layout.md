@@ -23,7 +23,7 @@ from drifting away from the place where the files are.
 - `<Layer>` is one of the layers from `ARCHITECTURE.md`: `Domain`, `Application`,
   `Infrastructure`, `Api`.
 - Layers are singular: `.Domain`, not `.Domains`. Plural only for something that really
-  is a collection (`.Migrations`).
+  is a collection (`.ServiceDefaults`).
 
 Why not bare names like `Domain` or `Application`? They collide as soon as two products
 reference each other or share packages, `Application` rubs against framework types, and
@@ -47,9 +47,13 @@ TodoApp.sln
 │   ├── TodoApp.Application/
 │   ├── TodoApp.Infrastructure/
 │   ├── TodoApp.Api/
-│   └── TodoApp.Web/                     the React frontend
-│       ├── package.json
-│       └── src/features/...
+│   ├── TodoApp.Web/                     the React frontend
+│   │   ├── package.json
+│   │   └── src/features/...
+│   ├── TodoApp.AppHost/                 Aspire: runs all of it locally
+│   ├── TodoApp.DbMigrator/              applies the migrations when the AppHost starts
+│   └── TodoApp.ServiceDefaults/         logs, traces and metrics for the dashboard
+├── aspire.config.json                   points `aspire run` at the AppHost
 └── tests/
     ├── TodoApp.Application.UnitTests/
     ├── TodoApp.Api.IntegrationTests/
@@ -60,6 +64,32 @@ TodoApp.sln
 
 The entry point is named after what it is: `.Api`, `.Web`, `.Blazor`, `.Worker`. A
 solution with an API and a worker therefore has two .NET entry points side by side.
+
+### Running it locally: `.AppHost`, `.DbMigrator`, `.ServiceDefaults`
+
+A developer runs the whole product with `aspire run`, see
+[`../ops/containers.md`](../ops/containers.md) chapter 3. Three projects carry that. None of
+them is deployed, and none of them is a layer, so the layer rules do not reach them.
+
+| Project | Is | References |
+|---|---|---|
+| `.AppHost` | the Aspire AppHost, SDK `Aspire.AppHost.Sdk`: which resources run, in what order | the entry points it starts, and `.DbMigrator` |
+| `.DbMigrator` | a worker that applies the pending migrations and stops, exit code 1 on a failure | `.Infrastructure`, `.ServiceDefaults` |
+| `.ServiceDefaults` | one `AddServiceDefaults()` extension that sends logs, traces and metrics to the dashboard | nothing of ours |
+
+The names are Aspire's own for the first and the last, and `.DbMigrator` names the task, the
+way chapter 4 wants: it migrates the database. The same three names in every project, so the
+second one reads like the first.
+
+- **`.DbMigrator` is local.** A deployed environment migrates with the migration bundle from
+  the pipeline, see [`../ops/database.md`](../ops/database.md), and the API never migrates
+  when it starts. The worker registers the `DbContext` without the auditing interceptor: a
+  migration writes through SQL, not through `SaveChanges`.
+- **`.ServiceDefaults` exports only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set**, which the
+  AppHost does. The image and the tests export nothing. The Aspire template also puts health
+  checks, service discovery and HTTP resilience in it. Leave those out while the API maps
+  its own `/health/live` and `/health/ready` and calls no other service of its own. The
+  Dockerfile's restore layer has to copy its `.csproj`, because the API references it.
 
 ### The frontend is an entry point
 
@@ -155,21 +185,19 @@ that is no longer possible, because the client must not know `.Application`. So:
 
 Add an architecture test as well: `.Contracts` has no dependency on another layer.
 
-### `.Persistence` and `.Migrations`
+### `.Persistence`
 
-Migrations belong with persistence. As long as only the application runs them, they live
-in `.Infrastructure`, as `ARCHITECTURE.md` describes.
+Migrations belong with persistence, and they live in `.Infrastructure`, as
+`ARCHITECTURE.md` describes. `.DbMigrator` from chapter 2 runs them; it does not hold them.
 
 If `.Infrastructure` grows to the point where EF Core, HTTP clients and messaging get in
 each other's way, split off `.Persistence` for everything that has to do with the
-database.
+database. The migrations move with it, and `.DbMigrator` references `.Persistence`
+instead.
 
-If you want to run migrations separately from the application as well (in a pipeline, by
-an administrator), give them their own executable project `.Migrations`. `.Persistence`
-then stays a library.
-
-Name the project after the task, not after the tool: `.Migrations`, not `.DbUp`,
-`.FluentMigrator` or `.EfMigrations`. See also the rule about technology names below.
+Name the project after the task, not after the tool: `.Persistence` and `.DbMigrator`, not
+`.DbUp`, `.FluentMigrator` or `.EfMigrations`. See also the rule about technology names
+below.
 
 ---
 
@@ -199,4 +227,7 @@ logic belongs somewhere more concrete.
 4. Create test projects with the right suffix in `tests/`.
 5. Create the frontend in `src/<Product>.Web/` and the journeys in
    `tests/<Product>.E2ETests/`, each with its own `package.json`.
-6. Do not add an optional project until the situation from chapter 3 arises.
+6. Create `.AppHost`, `.DbMigrator` and `.ServiceDefaults` in `src/`, and `aspire.config.json`
+   in the root, and check that `aspire run` starts everything. See
+   [`../ops/containers.md`](../ops/containers.md) chapter 3.
+7. Do not add an optional project until the situation from chapter 3 arises.

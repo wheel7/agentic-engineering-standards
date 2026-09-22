@@ -100,10 +100,12 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 
 <!-- Which database, where does it run, how do you get to it? -->
 
-- **Type**: PostgreSQL <major version, same as docker-compose.yml and production>
-- **Local connection string**: comes from `docker-compose.yml`; if this project deviates
-  from that, note here how.
-- **Migrations**:
+- **Type**: PostgreSQL <major version, same in the AppHost, docker-compose.yml and production>
+- **Local connection string**: set by the AppHost under Aspire, and in `docker-compose.yml`
+  for the compose stack; if this project deviates from that, note here how.
+- **Looking in the database**: pgAdmin, through its link in the Aspire dashboard.
+- **Migrations**: `aspire run` applies them through `.DbMigrator`. Adding one, and applying it
+  to the compose database:
 
 ```bash
 dotnet ef migrations add <Name> --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
@@ -128,17 +130,14 @@ dotnet ef database update       --project src/<Product>.Infrastructure --startup
 ### Running locally
 
 ```bash
-# Database and API in containers:
-docker compose up
+# Once per machine:
+dotnet tool install --global aspire.cli
 
-# Or only the database in a container and the API outside it:
-docker compose up -d db
-dotnet run --project src/<Product>.Api
+# Everything: database with pgAdmin, migrations, API and frontend, with the dashboard.
+aspire run
 
-# The frontend, with the dev server:
-cd src/<Product>.Web
-npm install
-npm run dev
+# The compose stack, for the journeys. It takes the API port too, so not next to Aspire.
+docker compose up -d --wait
 ```
 
 <!-- Two fixed ports, chosen during setup and not the defaults of the tools, both on HTTPS.
@@ -146,9 +145,10 @@ npm run dev
      included, so the frontend has to stay where it was registered.
      See .standards/ops/containers.md chapter 3. -->
 
+- **Aspire dashboard**: <https://localhost:xxxx - 1>
 - **Local frontend URL**: <https://localhost:xxxx>, fixed and strict
-- **Local API URL**: <https://localhost:yyyy>, under `dotnet run` and as the host side of the
-  port mapping in compose.
+- **Local API URL**: <https://localhost:yyyy>, under Aspire and `dotnet run`, and as the
+  host side of the port mapping in compose.
 - **Local HTTPS certificate**: the ASP.NET development certificate, once per machine, from
   the repository root. `.certs/` holds a private key and is not in git.
 

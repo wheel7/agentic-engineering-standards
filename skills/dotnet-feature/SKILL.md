@@ -79,7 +79,7 @@ Only if the data model changes:
 dotnet ef migrations add <Name> --project src/<Product>.Infrastructure --startup-project src/<Product>.Api
 ```
 
-Leave running `database update` to the user.
+Leave applying it to the user: restarting `aspire run` does that, through `.DbMigrator`.
 
 ### 7. Register the handler
 

@@ -94,7 +94,10 @@ Apply the answer everywhere it appears, see `@.standards/ops/containers.md` chap
   than moving. It reads the certificate from `.certs`, only when a server starts, and stops
   with the two `dotnet dev-certs` commands in the message when the files are missing. A
   build and a test run must work without them.
-- The API under `dotnet run`, in `launchSettings.json`: one `https` profile, no `http` one.
+- The API under Aspire and `dotnet run`, in `launchSettings.json`: one `https` profile, no
+  `http` one.
+- The frontend endpoint in `AppHost.cs`: the frontend port, HTTPS, not proxied. The
+  dashboard in the AppHost's `launchSettings.json`: the port below the frontend's.
 - The API in compose: the host side of the port mapping, `ASPNETCORE_URLS` and the Kestrel
   certificate paths as environment variables, and `.certs` mounted read-only. The image
   itself stays on plain 8080.
@@ -152,10 +155,16 @@ and why.
 6. **Containers** per `@.standards/ops/containers.md`: Dockerfile, `.dockerignore`, a
    compose file with the database and a health check, and the API on HTTPS on its own port.
    The frontend does not get an image.
-7. **CI/CD** per `@.standards/ops/ci-cd.md`: the workflows, with `submodules: recursive`
+7. **Running locally** per `@.standards/ops/containers.md` chapter 3 and
+   `@.standards/dotnet/solution-layout.md` chapter 2: `.AppHost` with Postgres, pgAdmin,
+   the migrator, the API and the frontend; `.DbMigrator`; `.ServiceDefaults`, called by the
+   API; `aspire.config.json` in the root. Check that the Aspire CLI is installed with
+   `aspire --version`, and ask the developer to install it with
+   `dotnet tool install --global aspire.cli` when it is not.
+8. **CI/CD** per `@.standards/ops/ci-cd.md`: the workflows, with `submodules: recursive`
    in every checkout. CD triggers on a successful CI run, never on push, or a red test
    will not stop a deploy.
-8. **Branch and protection** per `@.standards/general/git-workflow.md`: one long-lived
+9. **Branch and protection** per `@.standards/general/git-workflow.md`: one long-lived
    branch, `main`, protected, with the required checks on it. There is no `develop`. Ask
    whether this project has more than one developer, because that decides whether a review
    is required or whether the checks carry it alone. Working alone changes who approves, not
@@ -198,26 +207,30 @@ and why.
    The very first CD run deserves a look as well. It only happens after the merge, so a
    mistake in `cd.yml` cannot show on the pull request. Check that it went green and that
    the log says "pushing manifest" for the image.
-9. **Architecture tests** per `@.standards/dotnet/testing.md`, so the layer rules are
+10. **Architecture tests** per `@.standards/dotnet/testing.md`, so the layer rules are
    enforced from the first commit rather than from the first review that notices.
-10. **End-to-end tests** in `tests/<Product>.E2ETests/`: Playwright with its own
+11. **End-to-end tests** in `tests/<Product>.E2ETests/`: Playwright with its own
     `package.json`, and one journey that goes through the frontend to the example slice.
-11. **A pull request template** carrying the test evidence block from
+12. **A pull request template** carrying the test evidence block from
     `@.standards/general/testing.md`, in `.github/pull_request_template.md`.
-12. **Project `CLAUDE.md`**: copy `@.standards/templates/CLAUDE.project.md` and fill in
+13. **Project `CLAUDE.md`**: copy `@.standards/templates/CLAUDE.project.md` and fill in
     every answer from the questions above. Leave no placeholder behind.
 
 ## Wrapping up
 
 - Run `dotnet build` and `dotnet test`. Both green before you hand over.
 - In `src/<Product>.Web`, run the lint, the typecheck, the tests and the build. All green.
-- Run `docker compose up` and confirm the application starts and reaches the database:
+- Run `aspire run` and confirm the application starts and reaches the database:
   `https://localhost:<API port>/health/ready` answers 200, with the certificate verified and
   not skipped. A 401 on `/` is the API working, not a fault: every endpoint requires a
   signed-in user unless it opts out, and nothing lives at `/`. Tell the developer, because
   it is the first thing they will open in a browser.
-- Start the frontend dev server and confirm it is on `https://localhost:<frontend port>` and
-  that the API accepts a CORS preflight from that origin.
+- Confirm the frontend is on `https://localhost:<frontend port>`, served by Vite itself with
+  `--port <frontend port>` and not by a leftover dev server, and that the API accepts a CORS
+  preflight from that origin. Check that pgAdmin opens from the dashboard, and that
+  `git status` shows no changed `package-lock.json`.
+- Stop Aspire and run `docker compose up` once as well: the image has to start on its own,
+  because that is what the journeys and a deployed host run.
 - Check that the project `CLAUDE.md` contains no remaining `<placeholder>`.
 - Report which decisions were made, which steps you skipped, and anything the developer
   still has to decide.
