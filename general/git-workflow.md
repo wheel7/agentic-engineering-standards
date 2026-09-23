@@ -177,6 +177,11 @@ every check that was going to be caught socially now is not going to be caught a
 - Required reviewers drops to zero. There is nobody to ask.
 - You read your own diff in the pull request before merging it. Not the summary, the diff.
   That is the review, and it is the only one there is.
+- **You run the automated review yourself**, on the pull request, before you merge it. The
+  author runs one too, but that pass marks its own work; yours is the only one that does
+  not. It is the nearest thing to a colleague there is, and it is still not one: what it
+  says is an opinion to weigh, not a verdict, and silence from it proves nothing. See
+  [`testing.md`](testing.md) chapter 3.
 - **One pull request per feature**, not per step. The two-sentence rule in chapter 3 is
   there to protect a reviewer who did not write the change. Alone, and certainly with an
   agent writing it, the person reading is the one who asked for the feature, and they read

@@ -89,6 +89,10 @@ Include the component in the feature's `index.ts` if it is used outside the feat
   project whose `tsconfig.json` only holds references, which is what the Vite template
   makes; `tsc --noEmit` checks nothing there and passes.
 - Report which files you added.
+- Run the automated review over the diff before you hand it over, fix what it is right
+  about, and report what it found and what you did with it. It is marking your own work, so
+  it catches slips rather than blind spots; the pass that counts is the one the person who
+  merges runs. See `@.standards/general/testing.md` chapter 3.
 - Report the test evidence in the format from `@.standards/general/testing.md`: the
   command you ran, the summary line it actually printed, which tests you added and what
   they assert, what this change touches that no test covers, and anything you could not

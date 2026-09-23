@@ -112,10 +112,43 @@ Projects put this in `.github/pull_request_template.md`:
 - Tests added or changed: `<path>` - `<what it asserts>`
 - Not covered: `<what this change touches that no test exercises>`
 - Could not verify: `<anything that could not be run here, and why>`
+- Reviewed: `<which automated review ran, what it found, and what was done with it>`
 ```
 
-The last two lines are not optional and are not allowed to say "none". A change with
+The last three lines are not optional and are not allowed to say "none". A change with
 nothing uncovered and nothing unverified is a change whose author has not looked.
+
+### An automated review runs on every change
+
+Tests answer whether the code does what a test says. They say nothing about the thing a
+reviewer would have caught: the case nobody thought of, the second place that needed the
+same change, the name that now lies. An automated review reads the diff and looks for
+exactly that, so run one on every pull request. `/code-review` in Claude Code does it
+against the branch or against a pull request number.
+
+Two passes, and they are worth different amounts:
+
+| Who runs it | When | Worth |
+|---|---|---|
+| Whoever wrote the change, agent included | before opening the pull request | catches slips and leftovers, not blind spots: the same head is marking its own work |
+| The person who will merge it | before merging | the one pass that is not the author's, and the closest thing to a second pair of eyes when working alone |
+
+**Every finding is either fixed or answered in the pull request.** A finding left lying
+without a word is worse than no review at all, because the next one does not get read
+either.
+
+**It never replaces reading the diff.** Working alone that reading is the whole of the
+human oversight, see [`git-workflow.md`](git-workflow.md) chapter 4. A review that says
+nothing is not permission to skip it.
+
+**The deep variant costs real money and time**, so it is not for every change. Spend it
+where a mistake cannot be taken back:
+
+- a migration that runs on live data;
+- anything about signing in, ownership, or the filter that keeps one user's records away
+  from another's;
+- deployment and proxy configuration;
+- the first slice of a new pattern, because every later one is copied from it.
 
 ### The rule with teeth
 
@@ -154,6 +187,7 @@ you would treat a failing test.
 3. CI is green, and green on this commit rather than an earlier one.
 4. The "not covered" line is honest enough to be useful.
 5. No test was quietly deleted, skipped or loosened.
+6. The automated review ran, and every finding was fixed or answered.
 
 Points 3 and 5 are the ones an agent cannot help you with, because both are questions
 about what is missing rather than about what is there.
