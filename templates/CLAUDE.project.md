@@ -64,12 +64,17 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 
 ### Language
 
-<!-- Technical vocabulary is always English. Domain concepts follow the language the
-     business itself uses. See .standards/general/language.md. Decide this once, here,
-     because a team that never decides ends up with both. -->
+<!-- Technical vocabulary is always English. Domain concepts are either in the language
+     of the users or in English, chosen once at the start. See
+     .standards/general/language.md. Decide this once, here, because a team that never
+     decides ends up with both. The same word is used in classes, endpoints, routes and
+     tables; route actions (new, edit) are always English. -->
 
-- **Domain concepts**: <English / Dutch / ...>
+- **Language of the users**: <Dutch / English / ...>
+- **Domain concepts in code**: <the language of the users / English>
 - **Agreed domain terms**: <Polis, Schademelding, ... - the words that must not be translated>
+- **Glossary** (only when domain concepts are English and the users speak another language):
+  <users' word -> code word, e.g. lid -> Member, ligplaats -> Location>
 - **Documentation in this repo**: <English / Dutch>
 - **Commit messages and PRs**: English
 
