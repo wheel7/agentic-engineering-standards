@@ -83,11 +83,18 @@ Leave applying it to the user: restarting `aspire run` does that, through `.DbMi
 
 ### 7. Register the handler
 
-In `src/<Product>.Api/Program.cs`: `builder.Services.AddScoped<{Name}Handler>();`
+In `src/<Product>.Api/<Feature>/<Feature>Services.cs`, inside `Add<Feature>()`:
+`services.AddScoped<{Name}Handler>();`, and a new repository next to it. A feature that has
+no folder in the Api project yet gets one, with this file and `<Feature>Endpoints.cs`, and
+`Program.cs` gets one `builder.Services.Add<Feature>();` and one `Map<Feature>Endpoints()`
+line. Nothing else of the feature goes in `Program.cs`. See chapter 4.8 of
+`@.standards/dotnet/ARCHITECTURE.md`.
 
 ### 8. Add the endpoint
 
-Also in `Program.cs`. The endpoint contains **no logic**: request in, call the handler,
+In `src/<Product>.Api/<Feature>/<Feature>Endpoints.cs`, inside `Map<Feature>Endpoints()`, on
+the `MapGroup` of its resource, which carries the route prefix and the OpenAPI tag. The
+endpoint contains **no logic**: request in, call the handler,
 HTTP result back.
 
 - Create: `Results.Created(...)` with the DTO.

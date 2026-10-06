@@ -77,6 +77,9 @@ TodoApp.sln
 │   │   └── Todos/
 │   │       └── TodoRepository.cs
 │   └── TodoApp.Api/
+│       ├── Todos/
+│       │   ├── TodoEndpoints.cs
+│       │   └── TodoServices.cs
 │       ├── Program.cs
 │       └── appsettings.json
 └── tests/
@@ -396,15 +399,28 @@ public sealed class TodoRepository : ITodoRepository
 
 Note: `GetByIdAsync` uses `AsNoTracking()` and is therefore meant for queries. If a command has to change an existing entity (for example `MarkCompleted()`), add a separate method **without** `AsNoTracking()`, otherwise the changes are not saved.
 
-### 4.8 Api: Minimal API endpoints + DI
+### 4.8 Api: Minimal API endpoints + DI, per feature
+
+`Program.cs` holds what every feature shares: logging, the database, authentication, error
+handling. It does **not** hold the endpoints or the handler registrations of a feature.
+Those live in a folder per feature in the Api project, named like the feature folder in
+Application (`Todos/`), in two files:
+
+- `<Feature>Services.cs`: an `Add<Feature>()` extension on `IServiceCollection` that
+  registers the repositories and handlers of that feature.
+- `<Feature>Endpoints.cs`: a `Map<Feature>Endpoints()` extension on `IEndpointRouteBuilder`,
+  with a `MapGroup` per resource, which puts the route prefix and the OpenAPI tag in one place.
+
+`Program.cs` then has one `Add` and one `Map` line per feature. Without this it becomes the
+one file every feature edits: the first project had thirteen endpoints in it after its second
+feature, and every pull request touched the same file.
 
 `src/TodoApp.Api/Program.cs`
 
 ```csharp
-using TodoApp.Application.Todos;
+using TodoApp.Api.Todos;
 using TodoApp.Infrastructure.Auditing;
 using TodoApp.Infrastructure.Data;
-using TodoApp.Infrastructure.Todos;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -422,37 +438,85 @@ builder.Services.AddDbContext<TodoDbContext>((sp, options) =>
         .UseSnakeCaseNamingConvention()
         .AddInterceptors(sp.GetRequiredService<AuditingInterceptor>()));
 
-// Repositories
-builder.Services.AddScoped<ITodoRepository, TodoRepository>();
-
-// Handlers
-builder.Services.AddScoped<CreateTodoCommandHandler>();
-builder.Services.AddScoped<GetTodoByIdQueryHandler>();
+// Features: each one registers its own repositories and handlers.
+builder.Services.AddTodos();
 
 var app = builder.Build();
 
-// CREATE TODO (Command)
-app.MapPost("/todos", async (
-    CreateTodoCommand command,
-    CreateTodoCommandHandler handler,
-    CancellationToken ct) =>
-{
-    var result = await handler.HandleAsync(command, ct);
-    return Results.Created($"/todos/{result.Id}", result);
-});
-
-// GET TODO BY ID (Query)
-app.MapGet("/todos/{id:guid}", async (
-    Guid id,
-    GetTodoByIdQueryHandler handler,
-    CancellationToken ct) =>
-{
-    var result = await handler.HandleAsync(new GetTodoByIdQuery { Id = id }, ct);
-    return result is null ? Results.NotFound() : Results.Ok(result);
-});
+// Features: each one maps its own routes.
+app.MapTodoEndpoints();
 
 app.Run();
 ```
+
+`src/TodoApp.Api/Todos/TodoServices.cs`
+
+```csharp
+using TodoApp.Application.Todos;
+using TodoApp.Infrastructure.Todos;
+
+namespace TodoApp.Api.Todos;
+
+public static class TodoServices
+{
+    public static IServiceCollection AddTodos(this IServiceCollection services)
+    {
+        // Repositories
+        services.AddScoped<ITodoRepository, TodoRepository>();
+
+        // Handlers
+        services.AddScoped<CreateTodoCommandHandler>();
+        services.AddScoped<GetTodoByIdQueryHandler>();
+
+        return services;
+    }
+}
+```
+
+`src/TodoApp.Api/Todos/TodoEndpoints.cs`
+
+```csharp
+using TodoApp.Application.Todos;
+
+namespace TodoApp.Api.Todos;
+
+public static class TodoEndpoints
+{
+    public static IEndpointRouteBuilder MapTodoEndpoints(this IEndpointRouteBuilder routes)
+    {
+        var todos = routes.MapGroup("/todos").WithTags("Todos");
+
+        // CREATE TODO (Command)
+        todos.MapPost("/", async (
+            CreateTodoCommand command,
+            CreateTodoCommandHandler handler,
+            CancellationToken ct) =>
+        {
+            var result = await handler.HandleAsync(command, ct);
+            return Results.Created($"/todos/{result.Id}", result);
+        })
+        .WithName("CreateTodo");
+
+        // GET TODO BY ID (Query)
+        todos.MapGet("/{id:guid}", async (
+            Guid id,
+            GetTodoByIdQueryHandler handler,
+            CancellationToken ct) =>
+        {
+            var result = await handler.HandleAsync(new GetTodoByIdQuery { Id = id }, ct);
+            return result is null ? Results.NotFound() : Results.Ok(result);
+        })
+        .WithName("GetTodoById");
+
+        return routes;
+    }
+}
+```
+
+The rules that held for an endpoint in `Program.cs` hold here unchanged: no logic, the
+`CancellationToken` passed along, and a conflict thrown by the handler, never chosen here.
+Cross-cutting pieces of the Api, such as the exception handlers or the middleware that
+resolves the current user, keep a folder named after what they hold (`Errors/`, `Identity/`).
 
 `src/TodoApp.Api/appsettings.json`
 
@@ -488,7 +552,8 @@ public sealed record UpdateTodoCommand
 ```
 
 ```csharp
-app.MapPut("/todos/{id:guid}", async (
+// In TodoEndpoints.cs, on the /todos group.
+todos.MapPut("/{id:guid}", async (
     Guid id,
     UpdateTodoCommand command,
     UpdateTodoCommandHandler handler,
@@ -647,8 +712,10 @@ Further conventions:
 4. Create or reuse a DTO. One that exposes an auditable entity implements `IAuditableDto`.
 5. Implement the repository method in **Infrastructure**.
 6. Update the EF configuration and add a migration (if needed).
-7. Register the handler in `Program.cs` (`AddScoped`).
-8. Add the endpoint in `Program.cs`.
+7. Register the handler (and a new repository) in `Api/<Feature>/<Feature>Services.cs`; a new
+   feature gets the file and one `Add<Feature>()` line in `Program.cs`.
+8. Add the endpoint in `Api/<Feature>/<Feature>Endpoints.cs`; a new feature gets the file and
+   one `Map<Feature>Endpoints()` line in `Program.cs`.
 9. Build, and regenerate the frontend client from the OpenAPI document. Commit both.
 10. Write a unit test for the handler, and an integration test for the endpoint, including
     that another user's record is a 404.
