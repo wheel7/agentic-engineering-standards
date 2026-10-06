@@ -28,14 +28,23 @@ Getting this wrong means renaming every project, namespace and folder later. See
 
 ### 2. Domain language
 
-Which language do the people who pay for this software use for their own concepts?
+Are the domain concepts in the language of the users, or in English?
 
 This is not the same question as which language the code is written in. Technical
-vocabulary is always English. Domain concepts follow the business, so a Dutch insurer
-gets `Polis` and `CreatePolisCommand`. See `@.standards/general/language.md`.
+vocabulary is always English. The domain concepts are a choice with two valid answers,
+see `@.standards/general/language.md` chapter 2:
 
-Ask it explicitly. A team that never decides ends up with both, which is the one outcome
-the standard rules out.
+- **The language of the users**: a Dutch insurer gets `Polis` and `CreatePolisCommand`,
+  and the route `/polissen/:polisId/edit`.
+- **English**: a Dutch harbour gets `Member` and `CancelMembershipCommand`, and the route
+  `/members/:memberId/edit`. Usual when the project continues an existing application or
+  data model that is already English.
+
+Ask it explicitly, with both options, and ask in which language the users work. A team
+that never decides ends up with both, which is the one outcome the standard rules out.
+Record the answer in the project's `CLAUDE.md`. For English, ask for the main business
+words too and write the glossary (users' word -> code word) right away. Route action
+segments (`new`, `edit`) are English either way.
 
 ### 3. Entry points
 
