@@ -182,15 +182,22 @@ every check that was going to be caught socially now is not going to be caught a
   not. It is the nearest thing to a colleague there is, and it is still not one: what it
   says is an opinion to weigh, not a verdict, and silence from it proves nothing. See
   [`testing.md`](testing.md) chapter 3.
-- **One pull request per feature**, not per step. The two-sentence rule in chapter 3 is
-  there to protect a reviewer who did not write the change. Alone, and certainly with an
-  agent writing it, the person reading is the one who asked for the feature, and they read
-  it as one thing: its API, its screens and its tests together. Split into a pull request
-  per step, the same feature is read three times, each time without the other two parts,
-  and the steps depend on each other, which is how they end up stacked. So: one branch and
-  one pull request for the feature, with a commit per step inside it, so the diff can still
-  be read a step at a time. Squash merging makes it one line in the history anyway.
-- What stays separate is what does not belong to the feature: an update of the
+- **One open pull request, closed when you decide together that it is done.** Not one per
+  step, and not one per feature either. The two-sentence rule in chapter 3 is there to
+  protect a reviewer who did not write the change. Alone, and certainly with an agent
+  writing it, the person reading is the one who asked for the work, and a pull request per
+  feature means the agent stops after every feature and waits for a merge before it can
+  start the next one without stacking. So: one branch and one pull request for a stretch of
+  work, with a commit per step inside it, so the diff can still be read a step at a time and
+  CI runs on every push. It is merged when the developer and the agent agree the stretch is
+  finished and can be tested, not when a feature happens to be done. Squash merging makes it
+  one line in the history.
+- **The agent never merges it on its own.** Closing the stretch is the moment the developer
+  reads the whole of it, so the decision to merge is the developer's, said in so many words.
+- **Nothing reaches an environment before it is merged**, because CD builds from `main`. When
+  a deployed environment has to show work in progress, close the stretch and merge, rather
+  than deploying a branch.
+- What stays separate is what does not belong to the stretch: an update of the
   `.standards` submodule, see chapter 5, and a change that stands on its own, such as a
   fix found along the way that other work does not depend on.
 
@@ -217,7 +224,7 @@ does, not what the description says it does. See
 |---|---|
 | Required reviewers | one, and not the author |
 | Self-approval on a pull request | off |
-| Pull request size | something worth arguing about, because someone else pays for it; the two-sentence rule replaces one pull request per feature |
+| Pull request size | something worth arguing about, because someone else pays for it; the two-sentence rule replaces one open pull request per stretch of work |
 | A convention that lived in your head | written down here or in the project `CLAUDE.md` |
 
 Put a reminder on it. The moment a team forms is exactly the moment nobody has time to
