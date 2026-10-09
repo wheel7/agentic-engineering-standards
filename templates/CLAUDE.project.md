@@ -101,6 +101,9 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 
 - **Provider**: <Kinde / Entra ID>
 - **Tenant or environment**: <...>
+- **Audience per environment**: <product>-local, <product>-test, <product>-production, each an
+  API at the provider with this application switched on. See .standards/ops/environments.md
+  chapter 4.
 - **System user id**: <the seeded UUID used for writes with no logged-in user>
 - **From the tokens**: the access token gives the API the subject and the email address only
   (in Kinde: "Customize access token", Email on). The name comes from the ID token, sent by

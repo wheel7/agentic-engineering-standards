@@ -188,7 +188,11 @@ whether the project has more than one developer here, not only at branch protect
 - **One developer**: one registration for every environment, the standard for solo
   projects, on the condition that authorization lives in the application's own database
   (users and roles per environment), not in the token. Do not ask; record it, with where
-  authorization lives.
+  authorization lives. **With an API per environment**: audiences `<product>-local`,
+  `<product>-test` and `<product>-production`, the application switched on for each API at
+  the provider, and the audience in the configuration of both frontend and API per
+  environment. Tell the developer to create all three APIs now. See environments.md
+  chapter 4.
 - **More than one developer**: ask, one registration for every environment or one per
   environment, and explain the difference in the terms of environments.md chapter 4: with
   one, a token from test is accepted by production. Recommend one per environment when

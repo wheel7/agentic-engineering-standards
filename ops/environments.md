@@ -149,14 +149,41 @@ itself?**
 - **It does** when roles or permissions come from the identity provider, inside the token.
   Then a token from test is a token with production rights.
 
-### Solo: one registration
+### Solo: one registration, an API per environment
 
 A project with one developer uses **one registration for every environment**, on the
 condition that authorization lives in the application's own database per environment, not
 in the token. That is how the projects so far work, and separate registrations would mean
 three sets of settings to keep in step for one person.
 
-Record it in the project `CLAUDE.md`: one registration, and where authorization lives.
+**The audience is still per environment.** One application does not need one audience: the
+provider lets an application ask for a token for any API it is allowed to use. So there is
+an API per environment, each with its own audience, and the one application is allowed to
+use all of them:
+
+| Environment | Audience | Where the frontend and the API read it |
+|---|---|---|
+| Development | `<product>-local` | the development configuration |
+| Test | `<product>-test` | the test configuration |
+| Production | `<product>-production` | the production configuration |
+
+That takes away the first point of "What one registration means": the production API checks
+its own audience and refuses a token minted on localhost or on test. What stays shared is the
+client id, the redirect URLs and the accounts, and rights do not travel with an account,
+because they live per environment in the database.
+
+- **The audience is a name, not a URL.** It never has to resolve, and a URL looks like an
+  address someone will try to call. Kinde shows a URL in its example; ignore that.
+- **In Kinde the application has to be switched on per API**, in the API's Applications tab.
+  Without it Kinde refuses the sign-in with "Requested audience ... has not been
+  whitelisted", before the user sees a login page. Create all three APIs when the project
+  starts, so test and production do not trip on it on their first deploy.
+- **The frontend and the API read the audience from configuration**, never from code, and the
+  two have to name the same one per environment. A mismatch is a 401 on every request after
+  a sign-in that looked fine.
+
+Record it in the project `CLAUDE.md`: one registration, the audiences, and where
+authorization lives.
 
 ### A team: ask
 
