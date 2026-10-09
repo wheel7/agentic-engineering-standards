@@ -64,7 +64,7 @@ cp .standards/templates/CLAUDE.project.md CLAUDE.md
 claude
 ```
 
-Then run `/wheel7:project-setup`. It asks the eight things that cannot be derived from an
+Then run `/wheel7:project-setup`. It asks the nine things that cannot be derived from an
 empty repository, product name, domain language and the local ports among them, and
 scaffolds afterwards.
 Finish by filling in the placeholders it could not answer for you in `CLAUDE.md`.
@@ -98,10 +98,12 @@ agentic-engineering-standards/
 │   └── api-contracts.md
 ├── dotnet/             .NET-specific
 │   ├── ARCHITECTURE.md
+│   ├── DDD.md          the domain-driven option, chosen at setup
 │   ├── solution-layout.md
 │   └── testing.md
 ├── react/              React-specific
 │   ├── ARCHITECTURE.md
+│   ├── DDD.md          the domain-driven option, chosen at setup
 │   └── testing.md
 ├── ops/                Running and shipping
 │   ├── database.md

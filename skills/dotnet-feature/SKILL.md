@@ -9,6 +9,10 @@ Follows the architecture from `@.standards/dotnet/ARCHITECTURE.md`. Read that do
 if you are in doubt about a choice; this skill is the execution of the checklist from
 chapter 6, not a replacement for it.
 
+When the project chose domain-driven design (its `CLAUDE.md` says so), `@.standards/dotnet/DDD.md`
+applies on top: the rule goes in the aggregate, not in the handler, and chapter 9 of DDD.md is
+the checklist instead.
+
 > The `.standards/` paths below assume this project has the standards as a git submodule.
 > Without it, the same documents are in the repository this skill was installed from.
 

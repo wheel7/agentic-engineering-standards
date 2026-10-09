@@ -30,6 +30,12 @@ This document describes the standard architecture for our .NET APIs. Use it as a
 
 In those cases: start with a simple service class and split off handlers as soon as the complexity grows.
 
+### And the other way round
+
+A domain whose rules are the point (invariants across fields, state that moves in steps,
+records only consistent together, tenants) can take [`DDD.md`](DDD.md) on top of this
+document. That is a choice made when the project starts, see the project setup.
+
 ---
 
 ## 2. Layers and dependencies

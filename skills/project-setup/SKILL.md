@@ -13,7 +13,7 @@ place where the decisions that cannot be derived from code get made and recorded
 
 ## Ask first, scaffold second
 
-Eight things cannot be inferred from an empty repository, and all eight are expensive to
+Nine things cannot be inferred from an empty repository, and all nine are expensive to
 change later. Ask the developer, one at a time, and do not guess.
 
 Ask the questions in this order, because later answers depend on earlier ones.
@@ -46,7 +46,30 @@ Record the answer in the project's `CLAUDE.md`. For English, ask for the main bu
 words too and write the glossary (users' word -> code word) right away. Route action
 segments (`new`, `edit`) are English either way.
 
-### 3. Entry points
+### 3. Architecture: the default, or domain-driven design
+
+Does the domain have rules that must hold whatever changes the data, state that moves in
+steps, or records that are only consistent together? Or is it lists and forms with field
+validation?
+
+- **The default** (`@.standards/dotnet/ARCHITECTURE.md`): entities with private setters and a
+  few intent methods, rules mostly in the handlers. Less code per feature.
+- **Domain-driven design** (`@.standards/dotnet/DDD.md`, on top of ARCHITECTURE.md):
+  aggregates that guard their own rules, no public setters, one repository per aggregate
+  root, a `DomainRuleException` for a rule that says no, an audit log of every change, and,
+  when the project has tenants, one query filter per tenant.
+
+Ask it explicitly and explain the difference in those terms; chapter 1 of DDD.md says when
+to choose it. Ask in the same breath whether the project is multi-tenant, and what the
+tenant is called in the business (a club, a practice, an organization), because DDD.md
+chapter 4 builds on it. Record both in the project `CLAUDE.md`.
+
+When the answer is DDD, the scaffold changes in four places: a `<Product>.Domain.UnitTests`
+project, the `DomainRuleException` and its handler, the extra architecture test of DDD.md
+chapter 8, and, with tenants, the tenant interface with the query filter in the
+`DbContext`. Import `@.standards/dotnet/DDD.md` in the project `CLAUDE.md`.
+
+### 4. Entry points
 
 The stack is not a question. Every project is a .NET API in `src/<Product>.Api` and a
 React frontend in `src/<Product>.Web`, in one repository. Do not ask whether the project
@@ -60,7 +83,7 @@ forms and component library. The React standard leaves these open on purpose, se
 `@.standards/react/ARCHITECTURE.md`, so the project has to decide them and record them.
 An answer of "not decided yet" is fine for anything the first screen does not need.
 
-### 4. Database
+### 5. Database
 
 PostgreSQL unless there is a reason. If there is a reason, record it as a deviation with
 the reason attached, otherwise someone will "fix" it later.
@@ -68,7 +91,7 @@ the reason attached, otherwise someone will "fix" it later.
 Ask which major version, because it has to match across the compose file, CI and
 production.
 
-### 5. Authentication provider
+### 6. Authentication provider
 
 Kinde or Entra ID, and which tenant. Authentication is never built in-house and passwords
 are never stored. See `@.standards/ops/database.md` for the identity model that goes with
@@ -78,7 +101,7 @@ provider and its subject.
 Ask for the system user id as well, or decide to generate one. Every row needs a
 `created_by`, including the rows no logged-in person ever creates.
 
-### 6. Local ports
+### 7. Local ports
 
 Two fixed ports on `localhost`, one for the frontend and one for the API. Ask for both, and
 do not take the defaults of the tools.
@@ -120,7 +143,7 @@ Export the certificate yourself while scaffolding, so that what you hand over ru
 `dotnet dev-certs https --check --trust` and ask the developer to run it when it is not
 trusted yet.
 
-### 7. Environments and hosting
+### 8. Environments and hosting
 
 Where does this run, and who is allowed to deploy to it? The answer drives the deploy
 jobs in the CD workflow.
@@ -139,7 +162,7 @@ See `@.standards/ops/environments.md`. For each deployed environment, ask:
 If none of this is decided yet, say so in the project `CLAUDE.md` rather than inventing
 something.
 
-### 8. Documentation language
+### 9. Documentation language
 
 The team's call, but it has to be one language. Record it.
 
