@@ -59,8 +59,9 @@ to a public repository was captured within minutes.
 ## 2. Authentication and authorization
 
 Authentication runs through an external provider, Kinde or Entra ID, chosen per project,
-with a separate application registration per environment. The identity model behind it,
-and why one shared registration is dangerous, is in
+with one application registration for every environment on a solo project and a choice per
+project for a team. The identity model behind it,
+and when one shared registration is dangerous, is in
 [`../ops/environments.md`](../ops/environments.md) and
 [`../ops/database.md`](../ops/database.md).
 
@@ -79,6 +80,28 @@ through handlers is how a permission ends up meaning two different things in two
 
 Claims come from the provider; what they entitle you to is our decision and lives in our
 code.
+
+**Roles live in our database, not at the provider.** The provider says who someone is.
+What they may do is a row in our own database next to `users`, see
+[`../ops/database.md`](../ops/database.md) chapter 4. Not roles or permissions configured
+in Kinde or Entra ID and read from the token, for three reasons:
+
+- **A change of rights is a change to our data.** The audit log records who granted what
+  and when, the same way it records every other change.
+- **Rights stay with their environment.** Each environment has its own database, so being
+  an admin in test says nothing about production, even when the accounts behind them are
+  the same.
+- **The provider stays a login.** Switching providers, or one person with two logins, does
+  not touch who may do what.
+
+The API looks the user up before authorization runs and puts the roles from the database
+on the request. Policies look at those, and **a role or permission claim inside the token
+never counts**. Otherwise a claim mapped by mistake, or anyone who administers the
+provider, hands out rights in the application. An integration test proves it: a token that
+carries an admin role claim, for a user without the role in the database, gets a 403.
+
+The first project put its roles in the provider's permissions without anybody deciding to,
+because nothing here said where they belong.
 
 **Service to service** uses the client credentials flow at the same provider, with its own
 registration per service. Not a shared API key, because a shared key cannot be revoked for

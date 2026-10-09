@@ -109,6 +109,7 @@ agentic-engineering-standards/
 │   ├── database.md
 │   ├── containers.md
 │   ├── environments.md
+│   ├── ports.md        the local port block of every project
 │   └── ci-cd.md
 ├── skills/             Agent skills, step-by-step working instructions
 │   ├── project-setup/SKILL.md

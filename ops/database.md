@@ -190,6 +190,29 @@ The subject is also not yours. The provider issues it, the provider can change i
 can be told to switch providers altogether. Everything else in the database points at
 `users.id`, which you control and which never changes.
 
+### What comes from the token
+
+The API sees the access token: the subject, to find the `user_identities` row, and the email
+address. Nothing else.
+
+- **The email address comes from the access token.** In Kinde that is one switch per
+  application: Tokens, "Customize access token", **Email**. Turn on nothing else there; roles
+  belong in our database, see "Roles" below.
+- **The name comes from the ID token, through the frontend.** Kinde's access token has no
+  name claim to give, and reading one there is how a project ends up with the email address
+  as everybody's name, which is what Bobinera did. The ID token does carry `given_name` and
+  `family_name`, and only the frontend has it. After signing in, the frontend sends both to
+  `POST /me/sync`, which returns the user with their roles, the same body as `GET /me`.
+- **The name is filled in once and then it is ours.** The domain method takes the profile
+  only while the user has no name: given and family name, else the part of the email
+  address before the @, else a placeholder in the users' language. A name already there is
+  never overwritten, so one chosen in the application stays, and a rename at the provider
+  does not reach us. Changing it is `PUT /me`, in the application.
+- **The name is not a secret and not a right**, so it is fine that it arrives through the
+  frontend. Nothing about roles or identity is ever taken from that request.
+
+FlipSync is the worked example. Typing a name for every user is the thing this avoids.
+
 ### Details that bite
 
 - **The table is `users`, not `user`.** Table names are plural anyway, see section 2, and
@@ -211,6 +234,39 @@ run at night, imports run from a pipeline. Those writes still need a `created_by
 Seed one fixed row in `users` for that, with a UUID written into the migration rather than
 generated. The created columns then never have to be nullable, and no reader ever has to
 handle "nobody" as a separate case.
+
+### Roles
+
+What a user may do lives here too, never at the provider. The reasons are in
+[`../general/security.md`](../general/security.md) chapter 2.
+
+- **`user_roles`**: one row per role a user holds, with `user_id`, `role` stored as a
+  string like every enum, the audit columns, and a unique constraint on `(user_id, role)`.
+  With [`../dotnet/DDD.md`](../dotnet/DDD.md) it is a child of the `User` aggregate, changed
+  through `User.GrantRole` and `User.RevokeRole`, so the audit log has every grant.
+- **Start with one role.** Add a second only when a second kind of user actually exists. A
+  role nobody holds is a branch in every policy that nothing tests.
+- **Cache the lookup briefly**, about a minute, together with the resolved user id. Long
+  enough that a request costs no extra query, and short enough that a revoked role stops
+  working before anybody notices it was still there.
+- **A multi-tenant project** puts the tenant in the row, `(user_id, club_id, role)`, because
+  someone can manage one club and only play in another.
+
+### The first admin
+
+Somebody has to hold the first admin role, and nobody can grant it from inside the
+application yet. A hand-written row does not hold: test is rebuilt on every deploy, see
+[`environments.md`](environments.md), and its admin would be gone each time.
+
+So: a setting per environment, `Authorization:AdminSubjects`, listing the provider subjects
+that hold the admin role. When the user is looked up, a subject on the list that lacks the
+role gets it, through the same `GrantRole`, written as the system user. The subject is the
+user id the provider shows (Kinde's `kp_...`, Entra's object id).
+
+That list is not a secret. A subject names someone and signs nobody in, so it can sit in
+`appsettings.Development.json` and in the deployed environment's configuration. Removing
+somebody from it does not revoke the role; that is a deliberate change in the
+application, because nothing should lose rights through a configuration file.
 
 ---
 
