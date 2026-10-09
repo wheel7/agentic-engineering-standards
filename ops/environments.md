@@ -9,22 +9,26 @@ on a host you control. The platform specifics of that host are not settled yet.
 
 ---
 
-## 1. Start with two
+## 1. Start small
 
 Four environments is the end state, not the starting point. Each deployed environment is
 a database to back up, a set of secrets to rotate, a certificate to renew and a place
 where something can be subtly out of date.
 
-- **Development and production** is where every project starts.
+- **Development is local**: the laptop, via Aspire, on `https://localhost:<port>`. It is not
+  deployed and it gets no hostname. A deployed environment called "development" is a test
+  environment with a misleading name.
+- **Production** is where every project goes.
 - **Add test** when you have journeys that need a deployed target, or when someone has to
-  look at a change before it reaches customers.
+  look at a change before it reaches customers. With a home cluster to put it on, that is
+  usually from the start.
 - **Add acceptance** when someone outside the team signs off on a release. If nobody
   does, it is a second test environment with a nicer name.
 
 | Environment | Used by | Lives | Database |
 |---|---|---|---|
 | Development | the developer | the laptop, via Aspire | thrown away at will |
-| Test | the team, and CI | deployed | rebuilt on every deploy |
+| Test | the team, and CI | deployed | rebuilt on every deploy, unless the project records otherwise |
 | Acceptance | the business | deployed | persists, refreshed from production |
 | Production | customers | deployed | persists |
 
@@ -54,7 +58,14 @@ data that looks real. At a minimum:
 
 - An `X-Robots-Tag: noindex` header, so the environment does not turn up in search
   results.
-- An IP allowlist or basic authentication in front of the proxy.
+- **Reachable only from a private network**, such as Tailscale, or an IP allowlist in front of
+  the proxy. A test environment on a home cluster that is only on the tailnet has this
+  already.
+
+Not basic authentication. The browser asks for it before the application loads, it does
+not travel with the CORS preflight of a single page application, so calls from the
+frontend to `api.test.<domain>` fail, and it gets in the way of the identity provider's
+redirects. It looks like protection and mostly breaks the application.
 
 This is not paranoia. A test environment carrying a restore of production data, indexed
 and reachable, is a data breach with a URL.
@@ -116,15 +127,43 @@ look at it on a restore.
 
 ## 4. Authentication
 
-**A separate application registration per environment.** Not one registration with three
-sets of redirect URLs.
+How many application registrations at the identity provider: one for every environment,
+or one per environment. It depends on who works on the project and on what a token is
+worth by itself.
 
-That shortcut is the dangerous one. With a single registration, a token minted for test
-carries the same issuer and the same audience as a production token. A production API
-that validates issuer and audience will accept it, and at that point anyone who can log
-in to test has given themselves production access.
+### What one registration means
 
-So, per environment:
+With a single registration, development, test and production share the issuer and the
+audience. So:
+
+- a production API accepts a token that was minted when somebody signed in on localhost
+  or on test;
+- `https://localhost:<port>` is an allowed redirect URL of the application production uses.
+
+Whether that matters depends on the second question: **does a token grant anything by
+itself?**
+
+- **It does not** when the API looks the signed-in person up in its own database and takes
+  their roles from there, per environment. A token from test then only works in
+  production for somebody who exists in production with rights there: the same person.
+- **It does** when roles or permissions come from the identity provider, inside the token.
+  Then a token from test is a token with production rights.
+
+### Solo: one registration
+
+A project with one developer uses **one registration for every environment**, on the
+condition that authorization lives in the application's own database per environment, not
+in the token. That is how the projects so far work, and separate registrations would mean
+three sets of settings to keep in step for one person.
+
+Record it in the project `CLAUDE.md`: one registration, and where authorization lives.
+
+### A team: ask
+
+With more than one developer, the setup asks: one registration or one per environment.
+Recommend one per environment when somebody other than the owner signs in to test, when
+test holds data the others should not see in production, or when the token carries roles
+or permissions. Then, per environment:
 
 | Separate | Why |
 |---|---|
@@ -136,6 +175,9 @@ So, per environment:
 Kinde has environments built in. In Entra ID it is a second app registration. Either way
 the application reads which one it is from configuration, the same as everything else
 that differs per environment.
+
+**Revisit when the team changes**: a solo project that gets a second developer asks the
+question again.
 
 There is no identity provider in the compose stack, so CI has a separate problem. The
 options are in [`ci-cd.md`](ci-cd.md).
@@ -198,8 +240,10 @@ persists, which app registration it uses, and who is allowed to deploy to it.
 2. Own Postgres container and own volume.
 3. Decided and written down: rebuilt on deploy, or persists.
 4. If it persists and holds a production restore: anonymization runs inside the restore.
-5. Own application registration at the identity provider, with its own audience.
+5. The application registration it uses at the identity provider: the shared one (solo), or
+   its own with its own audience, see chapter 4.
 6. Own secrets, in a GitHub Environment of its own.
-7. Not production? Then `noindex` and something in front of it.
+7. Not production? Then `noindex`, and reachable only from a private network or an
+   allowlist, see chapter 2.
 8. Memory and CPU limits on every container.
 9. Written into the project `CLAUDE.md`.

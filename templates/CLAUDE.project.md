@@ -154,6 +154,7 @@ docker compose up -d --wait
      included, so the frontend has to stay where it was registered.
      See .standards/ops/containers.md chapter 3. -->
 
+- **Port block** (from .standards/ops/ports.md): <50x0>
 - **Aspire dashboard**: <https://localhost:xxxx - 1>
 - **Local frontend URL**: <https://localhost:xxxx>, fixed and strict
 - **Local API URL**: <https://localhost:yyyy>, under Aspire and `dotnet run`, and as the
