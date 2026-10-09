@@ -103,8 +103,11 @@ Ask for the system user id as well, or decide to generate one. Every row needs a
 
 ### 7. Local ports
 
-Two fixed ports on `localhost`, one for the frontend and one for the API. Ask for both, and
-do not take the defaults of the tools.
+Two fixed ports on `localhost`, one for the frontend and one for the API, and the dashboard one
+below the frontend. Do not take the defaults of the tools, and do not invent a pair: read
+`@.standards/ops/ports.md`, propose the next free block of ten, and ask whether that is fine.
+Add the project to the table in that file in a standards pull request, or record the block in
+the project `CLAUDE.md` so the next standards pull request picks it up.
 
 This comes right after the authentication provider because that is what makes it matter.
 The provider only redirects to a callback URL that was registered with it, scheme and port
@@ -146,18 +149,35 @@ trusted yet.
 ### 8. Environments and hosting
 
 Where does this run, and who is allowed to deploy to it? The answer drives the deploy
-jobs in the CD workflow.
+jobs in the CD workflow. See `@.standards/ops/environments.md`.
 
-Start from two, development and production, and only add more when something needs them.
-See `@.standards/ops/environments.md`. For each deployed environment, ask:
+**Development is local** (localhost, Aspire) and gets no hostname: do not ask for a
+`dev.<domain>`. Ask which deployed environments there are: production always, test when
+there is somewhere to run it (a home cluster usually means from the start), acceptance only
+when somebody outside the team signs off. For each deployed environment, ask:
 
-- The hostnames, nested under the environment label rather than prefixed.
+- The hostnames, nested under the environment label rather than prefixed:
+  `test.<domain>` and `api.test.<domain>`, production without a prefix.
+- How a non-production environment is kept private: reachable only from a private network
+  such as Tailscale, or an IP allowlist. Not basic authentication, which breaks the API calls
+  of the frontend; environments.md chapter 2 says why.
 - Whether the database is rebuilt on every deploy or persists. Test is rebuilt,
   acceptance persists. Getting this backwards costs you either reproducibility or
   realism, and you will not notice which until you need it.
-- Whether it has its own application registration at the identity provider. It has to.
-  One registration shared across environments means a test token that production accepts.
 - Who approves a deploy to it.
+
+**Application registrations at the identity provider** follow from the team, so ask
+whether the project has more than one developer here, not only at branch protection:
+
+- **One developer**: one registration for every environment, the standard for solo
+  projects, on the condition that authorization lives in the application's own database
+  (users and roles per environment), not in the token. Do not ask; record it, with where
+  authorization lives.
+- **More than one developer**: ask, one registration for every environment or one per
+  environment, and explain the difference in the terms of environments.md chapter 4: with
+  one, a token from test is accepted by production. Recommend one per environment when
+  others sign in to test, when test holds data others should not see in production, or when
+  the token carries roles or permissions.
 
 If none of this is decided yet, say so in the project `CLAUDE.md` rather than inventing
 something.
@@ -197,8 +217,8 @@ and why.
    in every checkout. CD triggers on a successful CI run, never on push, or a red test
    will not stop a deploy.
 9. **Branch and protection** per `@.standards/general/git-workflow.md`: one long-lived
-   branch, `main`, protected, with the required checks on it. There is no `develop`. Ask
-   whether this project has more than one developer, because that decides whether a review
+   branch, `main`, protected, with the required checks on it. There is no `develop`. Whether
+   the project has more than one developer, asked at question 8, decides whether a review
    is required or whether the checks carry it alone. Working alone changes who approves, not
    whether the protection is on, and not whether a change goes through a pull request.
 

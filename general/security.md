@@ -59,8 +59,9 @@ to a public repository was captured within minutes.
 ## 2. Authentication and authorization
 
 Authentication runs through an external provider, Kinde or Entra ID, chosen per project,
-with a separate application registration per environment. The identity model behind it,
-and why one shared registration is dangerous, is in
+with one application registration for every environment on a solo project and a choice per
+project for a team. The identity model behind it,
+and when one shared registration is dangerous, is in
 [`../ops/environments.md`](../ops/environments.md) and
 [`../ops/database.md`](../ops/database.md).
 
