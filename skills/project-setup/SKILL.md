@@ -101,6 +101,22 @@ provider and its subject.
 Ask for the system user id as well, or decide to generate one. Every row needs a
 `created_by`, including the rows no logged-in person ever creates.
 
+Ask which roles the application needs, and start with as few as the answer allows. Where
+they live is not a question: in our own database, in `user_roles`, never as roles or
+permissions at the provider. See `@.standards/general/security.md` chapter 2 and
+`@.standards/ops/database.md` chapter 4. Do not tell the developer to create roles or
+permissions in Kinde or Entra ID. The first admin comes from `Authorization:AdminSubjects`
+per environment; ask for the developer's subject at the provider, or leave the
+development setting empty and say where to find it after the first sign-in. Scaffold the
+`/me` endpoint that returns the user's roles, so the frontend can show what they may do,
+and the integration test that a role claim inside the token gives a 403.
+
+The access token supplies the subject and the email address, nothing else. For Kinde, tell
+the developer to switch on only **Email** under the application's Tokens, "Customize access
+token". The name comes from the ID token: scaffold `POST /me/sync`, which the frontend calls
+after signing in with the given and family name from the provider's SDK, and a domain
+method that fills in an empty name only. See `@.standards/ops/database.md` chapter 4.
+
 ### 7. Local ports
 
 Two fixed ports on `localhost`, one for the frontend and one for the API, and the dashboard one
@@ -198,7 +214,7 @@ and why.
 3. **Architecture** per `@.standards/dotnet/ARCHITECTURE.md`: the four layers, the
    project references pointing inwards, one vertical slice as an example.
 4. **Database** per `@.standards/ops/database.md`: Npgsql, snake_case naming, the
-   `users` and `user_identities` tables, the seeded system user, `IAuditableEntity` with
+   `users`, `user_identities` and `user_roles` tables, the seeded system user, `IAuditableEntity` with
    its interceptor, and the first migration.
 5. **Frontend** in `src/<Product>.Web/` per `@.standards/dotnet/solution-layout.md` and
    `@.standards/react/ARCHITECTURE.md`: its own `package.json`, TypeScript, the feature
