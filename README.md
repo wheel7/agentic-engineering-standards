@@ -210,8 +210,9 @@ handful of decisions that cannot be derived from an empty repository, such as th
 name and the language of the domain, before it scaffolds anything.
 
 Installing them is in [Getting started](#getting-started) above. There is one way in,
-the plugin, and the commands are `/wheel7:project-setup`, `/wheel7:dotnet-feature` and
-`/wheel7:react-component`.
+the plugin, and the commands are `/wheel7:project-setup`, `/wheel7:dotnet-feature`,
+`/wheel7:react-component` and `/wheel7:aspire-run`, which starts a project locally and checks
+that it actually came up.
 
 ### Where `.standards` comes from
 
