@@ -29,6 +29,8 @@ go through a PR in that repo, not here.
 @.standards/general/security.md
 @.standards/general/api-contracts.md
 @.standards/dotnet/ARCHITECTURE.md
+<!-- Only when the project chose domain-driven design at setup: -->
+<!-- @.standards/dotnet/DDD.md -->
 @.standards/dotnet/solution-layout.md
 @.standards/dotnet/testing.md
 @.standards/react/ARCHITECTURE.md
@@ -61,6 +63,8 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 
 - **Product name**: <Product>
 - **Entry points**: <Product>.Api, <Product>.Web <and optionally .Worker>
+- **Architecture**: <the default of dotnet/ARCHITECTURE.md / domain-driven design, dotnet/DDD.md, because ...>
+- **Tenants**: <none / multi-tenant; the tenant is called ... (`<Tenant>Id`), and how a request knows its tenant>
 
 ### Language
 
