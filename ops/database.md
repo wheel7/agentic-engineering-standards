@@ -212,6 +212,39 @@ Seed one fixed row in `users` for that, with a UUID written into the migration r
 generated. The created columns then never have to be nullable, and no reader ever has to
 handle "nobody" as a separate case.
 
+### Roles
+
+What a user may do lives here too, never at the provider. The reasons are in
+[`../general/security.md`](../general/security.md) chapter 2.
+
+- **`user_roles`**: one row per role a user holds, with `user_id`, `role` stored as a
+  string like every enum, the audit columns, and a unique constraint on `(user_id, role)`.
+  With [`../dotnet/DDD.md`](../dotnet/DDD.md) it is a child of the `User` aggregate, changed
+  through `User.GrantRole` and `User.RevokeRole`, so the audit log has every grant.
+- **Start with one role.** Add a second only when a second kind of user actually exists. A
+  role nobody holds is a branch in every policy that nothing tests.
+- **Cache the lookup briefly**, about a minute, together with the resolved user id. Long
+  enough that a request costs no extra query, and short enough that a revoked role stops
+  working before anybody notices it was still there.
+- **A multi-tenant project** puts the tenant in the row, `(user_id, club_id, role)`, because
+  someone can manage one club and only play in another.
+
+### The first admin
+
+Somebody has to hold the first admin role, and nobody can grant it from inside the
+application yet. A hand-written row does not hold: test is rebuilt on every deploy, see
+[`environments.md`](environments.md), and its admin would be gone each time.
+
+So: a setting per environment, `Authorization:AdminSubjects`, listing the provider subjects
+that hold the admin role. When the user is looked up, a subject on the list that lacks the
+role gets it, through the same `GrantRole`, written as the system user. The subject is the
+user id the provider shows (Kinde's `kp_...`, Entra's object id).
+
+That list is not a secret. A subject names someone and signs nobody in, so it can sit in
+`appsettings.Development.json` and in the deployed environment's configuration. Removing
+somebody from it does not revoke the role; that is a deliberate change in the
+application, because nothing should lose rights through a configuration file.
+
 ---
 
 ## 5. Auditing

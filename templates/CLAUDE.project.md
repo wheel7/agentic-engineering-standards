@@ -102,6 +102,10 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 - **Provider**: <Kinde / Entra ID>
 - **Tenant or environment**: <...>
 - **System user id**: <the seeded UUID used for writes with no logged-in user>
+- **Roles**: <the roles, in our own database, and what each may do. Never at the provider;
+  see .standards/general/security.md chapter 2>
+- **First admin**: <the subjects in Authorization:AdminSubjects per environment, or where
+  they are set; see .standards/ops/database.md chapter 4>
 - **How the frontend logs in**: <which flow, and where the token comes from>
 - **Registered for development**: <https://localhost:xxxx> as callback URL and as logout URL
 
