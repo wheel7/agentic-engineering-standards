@@ -111,10 +111,11 @@ development setting empty and say where to find it after the first sign-in. Scaf
 `/me` endpoint that returns the user's roles, so the frontend can show what they may do,
 and the integration test that a role claim inside the token gives a 403.
 
-The token supplies the subject and the email address, nothing else. The name lives in our
-database and is maintained in the application, never read from the token, see
-`@.standards/ops/database.md` chapter 4. For Kinde, tell the developer to switch on only
-**Email** under the application's Tokens, "Customize access token".
+The access token supplies the subject and the email address, nothing else. For Kinde, tell
+the developer to switch on only **Email** under the application's Tokens, "Customize access
+token". The name comes from the ID token: scaffold `POST /me/sync`, which the frontend calls
+after signing in with the given and family name from the provider's SDK, and a domain
+method that fills in an empty name only. See `@.standards/ops/database.md` chapter 4.
 
 ### 7. Local ports
 

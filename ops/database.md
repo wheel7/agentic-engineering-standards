@@ -192,17 +192,26 @@ can be told to switch providers altogether. Everything else in the database poin
 
 ### What comes from the token
 
-The subject, to find the `user_identities` row, and the email address. Nothing else.
+The API sees the access token: the subject, to find the `user_identities` row, and the email
+address. Nothing else.
 
-- **The name is ours.** `users.display_name` lives in our database and is maintained in the
-  application: a profile or a user management screen. It is never read from the token, on
-  sign-up or after. Kinde's access token has no name claim to give, and Entra's changes
-  when somebody renames their account. Viertallen works this way, and a name that comes from
-  the provider on one project and from the application on another is the inconsistency to
-  avoid. A new user starts without a name until somebody sets it.
-- **The email address comes from the access token**, because that is what the API sees.
-  In Kinde that is one switch per application: Tokens, "Customize access token", **Email**.
-  Turn on nothing else there; roles belong in our database, see "Roles" below.
+- **The email address comes from the access token.** In Kinde that is one switch per
+  application: Tokens, "Customize access token", **Email**. Turn on nothing else there; roles
+  belong in our database, see "Roles" below.
+- **The name comes from the ID token, through the frontend.** Kinde's access token has no
+  name claim to give, and reading one there is how a project ends up with the email address
+  as everybody's name, which is what Bobinera did. The ID token does carry `given_name` and
+  `family_name`, and only the frontend has it. After signing in, the frontend sends both to
+  `POST /me/sync`, which returns the user with their roles, the same body as `GET /me`.
+- **The name is filled in once and then it is ours.** The domain method takes the profile
+  only while the user has no name: given and family name, else the part of the email
+  address before the @, else a placeholder in the users' language. A name already there is
+  never overwritten, so one chosen in the application stays, and a rename at the provider
+  does not reach us. Changing it is `PUT /me`, in the application.
+- **The name is not a secret and not a right**, so it is fine that it arrives through the
+  frontend. Nothing about roles or identity is ever taken from that request.
+
+FlipSync is the worked example. Typing a name for every user is the thing this avoids.
 
 ### Details that bite
 
