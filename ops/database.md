@@ -190,6 +190,20 @@ The subject is also not yours. The provider issues it, the provider can change i
 can be told to switch providers altogether. Everything else in the database points at
 `users.id`, which you control and which never changes.
 
+### What comes from the token
+
+The subject, to find the `user_identities` row, and the email address. Nothing else.
+
+- **The name is ours.** `users.display_name` lives in our database and is maintained in the
+  application: a profile or a user management screen. It is never read from the token, on
+  sign-up or after. Kinde's access token has no name claim to give, and Entra's changes
+  when somebody renames their account. Viertallen works this way, and a name that comes from
+  the provider on one project and from the application on another is the inconsistency to
+  avoid. A new user starts without a name until somebody sets it.
+- **The email address comes from the access token**, because that is what the API sees.
+  In Kinde that is one switch per application: Tokens, "Customize access token", **Email**.
+  Turn on nothing else there; roles belong in our database, see "Roles" below.
+
 ### Details that bite
 
 - **The table is `users`, not `user`.** Table names are plural anyway, see section 2, and

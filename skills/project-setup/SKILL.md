@@ -111,6 +111,11 @@ development setting empty and say where to find it after the first sign-in. Scaf
 `/me` endpoint that returns the user's roles, so the frontend can show what they may do,
 and the integration test that a role claim inside the token gives a 403.
 
+The token supplies the subject and the email address, nothing else. The name lives in our
+database and is maintained in the application, never read from the token, see
+`@.standards/ops/database.md` chapter 4. For Kinde, tell the developer to switch on only
+**Email** under the application's Tokens, "Customize access token".
+
 ### 7. Local ports
 
 Two fixed ports on `localhost`, one for the frontend and one for the API. Ask for both, and
