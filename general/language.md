@@ -118,3 +118,31 @@ for it.
 
 New projects get asked this during setup. See
 [`../skills/project-setup/SKILL.md`](../skills/project-setup/SKILL.md).
+
+## 8. Writing style
+
+These hold for everything written in a project, in any language: screen texts, error
+messages, documentation, code comments, commit messages and pull requests. They hold for an
+agent's own answers to the developer too.
+
+**Never a dash as punctuation.** No em dash (—), and no en dash (–) between words. Use a full
+stop and start a new sentence, or a colon when what follows explains what came before. An en
+dash stays only where it means "to", in a range such as 3–4 players.
+
+**Short sentences with few commas.**
+
+- No comma before "and" or "or" ("en", "of" in Dutch) that joins two parts of a sentence.
+- When a sentence carries two thoughts, it becomes two sentences. "De rode band noemt de soort,
+  en de soort bepaalt de illustratie." is "De rode band noemt de soort. De soort bepaalt ook de
+  illustratie."
+- No semicolons between clauses. A full stop does the same job and reads easier.
+- No chain of clauses held together by commas. Split it.
+- A comma between the items of a list ("A, B and C") stays. So does a comma the sentence needs
+  to be read correctly, around an inserted clause for example.
+
+Text a user reads gets the most care, because a sentence that has to be read twice on a screen
+is a sentence that gets skipped. When in doubt, write it shorter.
+
+The rule came from the developer of the first projects, who found long dashes and comma chains
+coming back in screen texts after every round. It is written down so the next round does not
+need the reminder.
