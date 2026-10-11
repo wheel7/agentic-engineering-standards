@@ -51,6 +51,43 @@ are, and it groups every hostname of an environment under one label.
 Production has no prefix. An environment marker on the production URL is a marker
 somebody will eventually read as "not the real one".
 
+### The API has its own host
+
+Always, in every environment. Not a path on the frontend's host that the ingress routes
+to the API.
+
+- **Test is then the same as production.** With the API on the frontend's host in test,
+  CORS and the `connect-src` of the Content-Security-Policy are never exercised there. They
+  break for the first time in production.
+- **The frontend and the API are separate containers.** Each gets its own route in the
+  ingress, by host. Nothing has to know which paths belong to whom.
+- **The paths carry no prefix.** See [`../general/api-contracts.md`](../general/api-contracts.md)
+  chapter 1.
+
+What that asks of the application:
+
+- The frontend reads the API's address from its runtime configuration, so one image runs
+  in every environment.
+- The API allows the frontend's origin through CORS, per environment, from configuration
+  ([`../general/security.md`](../general/security.md) chapter 2).
+- The `connect-src` of the frontend lists the API host of every environment. It is one
+  image, so the policy has to fit all of them.
+
+### Test on a shared domain
+
+A product with its own domain follows the pattern above: `test.example.com` and
+`api.test.example.com`. When the test environments of several products share one domain,
+for example because the product domains have to keep their DNS where the mail is, put the
+product in the first label and keep the environment as the shared parent:
+
+```
+product.test.shared.com          product-api.test.shared.com
+```
+
+One wildcard record and one wildcard certificate (`*.test.shared.com`) then cover every
+product. `api.product.test.shared.com` would need a wildcard per product. The rule stays
+the same: the environment is nested, and the API has its own host.
+
 ### Non-production is not public
 
 Test and acceptance are reachable by anyone who guesses the hostname, and they hold
@@ -263,7 +300,8 @@ persists, which app registration it uses, and who is allowed to deploy to it.
 
 ## 8. Checklist: a new environment
 
-1. Own hostnames, nested under the environment label.
+1. Own hostnames, nested under the environment label, with the API on a host of its own.
+   Its origin in the CORS allowlist, its host in the `connect-src` of the frontend.
 2. Own Postgres container and own volume.
 3. Decided and written down: rebuilt on deploy, or persists.
 4. If it persists and holds a production restore: anonymization runs inside the restore.

@@ -22,6 +22,11 @@ goes over the wire.
 - **Actions that are not CRUD get a sub-resource with a verb.**
   `POST /todos/{id}/complete`. Do not bend `PATCH` into meaning "complete it", because
   then the next reader has to guess which fields that touches.
+- **No `/api` prefix.** `/todos`, not `/api/todos`. The API has its own host in every
+  environment ([`../ops/environments.md`](../ops/environments.md) chapter 2), so the host
+  already says it is the API. A prefix only earns its keep when one host serves both the
+  frontend and the API, and these standards do not do that. The health checks sit at the
+  root as well: `/health/live` and `/health/ready`.
 
 ### Versioning
 

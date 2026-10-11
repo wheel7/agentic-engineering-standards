@@ -175,7 +175,7 @@ to be worth a sentence.
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `Content-Security-Policy` | as tight as the application allows, and `frame-ancestors 'none'` |
+| `Content-Security-Policy` | as tight as the application allows, and `frame-ancestors 'none'`; `connect-src` names the API host of every environment, see [`../ops/environments.md`](../ops/environments.md) chapter 2 |
 
 An API that serves only JSON needs HSTS and `nosniff`; the rest are about documents in a
 browser. Non-production environments additionally get `X-Robots-Tag: noindex`, see
