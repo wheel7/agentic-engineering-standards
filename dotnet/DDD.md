@@ -1,12 +1,12 @@
 # Domain-driven design on top of the architecture
 
-An option, chosen when a project starts. [`ARCHITECTURE.md`](ARCHITECTURE.md) is the
-default: entities with private setters and a few intent methods, and the rules mostly in the
-handlers. That is the right size for a domain that is CRUD with some checks. This document
-is for a domain where the rules are the point: invariants that span fields, state that moves
-in steps, history that must stay consistent. The project setup asks which one a project
-takes, see [`../skills/project-setup/SKILL.md`](../skills/project-setup/SKILL.md), and the
-project's `CLAUDE.md` records it.
+The default for every project. [`ARCHITECTURE.md`](ARCHITECTURE.md) describes the layers
+underneath it, and on its own it is the lighter variant: entities with private setters and a
+few intent methods, and the rules mostly in the handlers. A project only takes that variant
+when its domain is lists and forms with field validation, and records why. The project setup
+asks it as question 3, before tenants and roles, see
+[`../skills/project-setup/SKILL.md`](../skills/project-setup/SKILL.md), and the project's
+`CLAUDE.md` records the answer.
 
 Everything in ARCHITECTURE.md still holds: the four layers, CQRS without MediatR, sealed
 handlers with one `HandleAsync`, Minimal API endpoints per feature, ProblemDetails, the
@@ -15,9 +15,13 @@ is Havenmeester; when something here is unclear, its code is the example.
 
 ---
 
-## 1. When to choose it
+## 1. When to leave it out
 
-Choose DDD when one of these is true:
+DDD is the default, because most domains grow rules, and adding them to a codebase without
+aggregates means a rebuild. The first project that started without it rebuilt its backend
+halfway through the setup, once it turned out to be multi-tenant.
+
+DDD stays whenever one of these is true, and then the lighter variant is not an option:
 
 - A business rule has to hold whatever screen or job changes the data: a berth never has
   two holders, an invoice that went to the bookkeeping system never changes.
@@ -26,8 +30,9 @@ Choose DDD when one of these is true:
   lines, a berth and its history.
 - The project is multi-tenant, and one tenant must never see another's data.
 
-Stay with ARCHITECTURE.md when the domain is lists and forms with field validation. DDD costs
-more code per feature, and that cost buys nothing when there are no rules to protect.
+Take ARCHITECTURE.md alone only when none of these holds and the domain is lists and forms
+with field validation. DDD costs more code per feature, and that cost buys nothing when there
+are no rules to protect. Record the reason in the project `CLAUDE.md` as a deviation.
 
 ---
 
@@ -111,8 +116,8 @@ gathers the inputs. That keeps the rule in the domain and testable without a dat
 
 ### Unit tests
 
-Every rule gets a test in `<Product>.Domain.UnitTests`, the project the default layout does
-not have and this choice adds. The names say the rule:
+Every rule gets a test in `<Product>.Domain.UnitTests`, the project ARCHITECTURE.md alone does
+not have and DDD adds. The names say the rule:
 `Assign_Throws_WhenTheBerthHasAHolder`.
 
 ---

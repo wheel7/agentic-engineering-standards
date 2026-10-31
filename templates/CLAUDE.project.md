@@ -29,8 +29,8 @@ go through a PR in that repo, not here.
 @.standards/general/security.md
 @.standards/general/api-contracts.md
 @.standards/dotnet/ARCHITECTURE.md
-<!-- Only when the project chose domain-driven design at setup: -->
-<!-- @.standards/dotnet/DDD.md -->
+<!-- Domain-driven design is the default. Remove the line below only when the project chose ARCHITECTURE.md alone at setup. -->
+@.standards/dotnet/DDD.md
 @.standards/dotnet/solution-layout.md
 @.standards/dotnet/testing.md
 @.standards/react/ARCHITECTURE.md
@@ -63,7 +63,7 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 
 - **Product name**: <Product>
 - **Entry points**: <Product>.Api, <Product>.Web <and optionally .Worker>
-- **Architecture**: <the default of dotnet/ARCHITECTURE.md / domain-driven design, dotnet/DDD.md, because ...>
+- **Architecture**: <domain-driven design, dotnet/DDD.md (the default) / dotnet/ARCHITECTURE.md alone, because ...>
 - **Tenants**: <none / multi-tenant; the tenant is called ... (`<Tenant>Id`), and how a request knows its tenant>
 - **Roles per tenant**: <which roles hold per tenant and which above all tenants; whether one person can hold roles in several tenants, and whether they then choose one or see them together; whether people sign in by invitation only>
 

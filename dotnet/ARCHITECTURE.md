@@ -30,11 +30,12 @@ This document describes the standard architecture for our .NET APIs. Use it as a
 
 In those cases: start with a simple service class and split off handlers as soon as the complexity grows.
 
-### And the other way round
+### Domain-driven design on top, by default
 
-A domain whose rules are the point (invariants across fields, state that moves in steps,
-records only consistent together, tenants) can take [`DDD.md`](DDD.md) on top of this
-document. That is a choice made when the project starts, see the project setup.
+A project takes [`DDD.md`](DDD.md) on top of this document unless it chose otherwise when it
+started. This document on its own is the lighter variant, for a domain of lists and forms
+with field validation, and a project that takes it records the reason. The project setup
+asks it as question 3.
 
 ---
 

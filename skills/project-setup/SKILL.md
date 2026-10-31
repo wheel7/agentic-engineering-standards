@@ -24,6 +24,10 @@ into one "agree with all of these?". A proposal confirmed in a bundle is a propo
 looked at, and the first project that did this found out halfway through the setup that it
 was multi-tenant after all.
 
+**Every question gets asked.** Do not skip one because the plan seems to answer it, and do
+not wait for the developer to bring a topic up. A question that only gets asked when the
+subject happens to come up gets asked too late.
+
 ### 1. Product name
 
 Becomes the prefix of every project: `Billing.Domain`, `Billing.Api`. Short, no company
@@ -52,7 +56,37 @@ Record the answer in the project's `CLAUDE.md`. For English, ask for the main bu
 words too and write the glossary (users' word -> code word) right away. Route action
 segments (`new`, `edit`) are English either way.
 
-### 3. Tenants and who signs in
+### 3. Architecture: domain-driven design, unless the domain is only lists and forms
+
+Domain-driven design is the default: `@.standards/dotnet/DDD.md` on top of
+`@.standards/dotnet/ARCHITECTURE.md`. That means aggregates that guard their own rules, no
+public setters, one repository per aggregate root, a `DomainRuleException` for a rule that
+says no, and an audit log of every change. With tenants it adds one query filter per tenant.
+
+Ask it every time, as a question of its own, right after the domain language. Ask it before
+tenants, roles or the stack come up. Never skip it because the plan looks simple, and never
+wait until tenants or a business rule come up in conversation. The first project that did
+that rebuilt its backend to DDD halfway through the setup.
+
+Put it as the default with one way out, and explain both in these terms:
+
+- **Domain-driven design**, the default. Take it unless the developer gives a reason for the
+  lighter variant.
+- **ARCHITECTURE.md alone**: entities with private setters and a few intent methods, and the
+  rules mostly in the handlers. Less code per feature. It only fits a domain of lists and
+  forms with field validation: no rule that spans fields, no state that moves in steps, no
+  records that are only consistent together, and no tenants. Record it as a deviation, with
+  the reason.
+
+Chapter 1 of DDD.md says when the lighter variant fits. Record the choice in the project
+`CLAUDE.md`.
+
+With DDD the scaffold changes in four places: a `<Product>.Domain.UnitTests` project, the
+`DomainRuleException` and its handler, the extra architecture test of DDD.md chapter 8, and,
+with tenants, the tenant interface with the query filter in the `DbContext`. Import
+`@.standards/dotnet/DDD.md` in the project `CLAUDE.md`.
+
+### 4. Tenants and who signs in
 
 Does one installation serve several businesses, clubs or practices whose data must stay
 apart, and do people from those sign in themselves? Ask it on its own, and ask it even when
@@ -74,30 +108,8 @@ When the answer is yes, ask four more things, because each one changes the scaff
   Invited only is the usual answer, and a login nobody invited gets a 403 `no-access`.
 
 Then name the roles per tenant at question 7. Record all of it in the project `CLAUDE.md`
-under Tenants. A multi-tenant project is a reason to choose DDD at the next question, see
-DDD.md chapter 1.
-
-### 4. Architecture: the default, or domain-driven design
-
-Does the domain have rules that must hold whatever changes the data, state that moves in
-steps, or records that are only consistent together? Or is it lists and forms with field
-validation?
-
-- **The default** (`@.standards/dotnet/ARCHITECTURE.md`): entities with private setters and a
-  few intent methods, rules mostly in the handlers. Less code per feature.
-- **Domain-driven design** (`@.standards/dotnet/DDD.md`, on top of ARCHITECTURE.md):
-  aggregates that guard their own rules, no public setters, one repository per aggregate
-  root, a `DomainRuleException` for a rule that says no, an audit log of every change, and,
-  when the project has tenants, one query filter per tenant.
-
-Ask it explicitly and explain the difference in those terms; chapter 1 of DDD.md says when
-to choose it. A yes to tenants at question 3 is a strong reason for DDD, because DDD.md
-chapter 4 builds the tenant filter on it. Record the choice in the project `CLAUDE.md`.
-
-When the answer is DDD, the scaffold changes in four places: a `<Product>.Domain.UnitTests`
-project, the `DomainRuleException` and its handler, the extra architecture test of DDD.md
-chapter 8, and, with tenants, the tenant interface with the query filter in the
-`DbContext`. Import `@.standards/dotnet/DDD.md` in the project `CLAUDE.md`.
+under Tenants. A multi-tenant project is always DDD. If question 3 chose the lighter
+variant, go back to it now and say why.
 
 ### 5. Entry points
 
@@ -133,7 +145,7 @@ Ask for the system user id as well, or decide to generate one. Every row needs a
 
 Ask which roles the application needs, and start with as few as the answer allows. With
 tenants, ask for each role whether it holds per tenant or above all of them, and name what
-each may do; the answers of question 3 already say whether there is a role above all
+each may do; the answers of question 4 already say whether there is a role above all
 tenants and whether one person can hold roles in several. Where
 they live is not a question: in our own database, in `user_roles`, never as roles or
 permissions at the provider. See `@.standards/general/security.md` chapter 2 and
