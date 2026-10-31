@@ -98,12 +98,11 @@ agentic-engineering-standards/
 │   └── api-contracts.md
 ├── dotnet/             .NET-specific
 │   ├── ARCHITECTURE.md
-│   ├── DDD.md          the domain-driven option, chosen at setup
+│   ├── DDD.md          domain-driven design, the default
 │   ├── solution-layout.md
 │   └── testing.md
 ├── react/              React-specific
 │   ├── ARCHITECTURE.md
-│   ├── DDD.md          the domain-driven option, chosen at setup
 │   └── testing.md
 ├── ops/                Running and shipping
 │   ├── database.md
