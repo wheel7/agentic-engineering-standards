@@ -13,10 +13,16 @@ place where the decisions that cannot be derived from code get made and recorded
 
 ## Ask first, scaffold second
 
-Nine things cannot be inferred from an empty repository, and all nine are expensive to
+Ten things cannot be inferred from an empty repository, and all ten are expensive to
 change later. Ask the developer, one at a time, and do not guess.
 
 Ask the questions in this order, because later answers depend on earlier ones.
+
+**A plan is not an answer.** When the developer brings a plan that already proposes answers,
+put each proposal to them as its own question, with what it means. Never fold several
+into one "agree with all of these?". A proposal confirmed in a bundle is a proposal nobody
+looked at, and the first project that did this found out halfway through the setup that it
+was multi-tenant after all.
 
 ### 1. Product name
 
@@ -46,7 +52,32 @@ Record the answer in the project's `CLAUDE.md`. For English, ask for the main bu
 words too and write the glossary (users' word -> code word) right away. Route action
 segments (`new`, `edit`) are English either way.
 
-### 3. Architecture: the default, or domain-driven design
+### 3. Tenants and who signs in
+
+Does one installation serve several businesses, clubs or practices whose data must stay
+apart, and do people from those sign in themselves? Ask it on its own, and ask it even when
+the plan says "one user": the owner alone today and a customer's own staff next month is
+exactly how this goes wrong. Adding tenants later touches every query, the roles table and
+the way a request knows who it is for.
+
+When the answer is yes, ask four more things, because each one changes the scaffold:
+
+- **What is the tenant called** in the business: a club, a customer, a practice. That word
+  becomes `I<Tenant>Owned` and `<Tenant>Id`.
+- **Is there a role above all tenants**, someone who sees and manages every one of them,
+  usually the owner? That role has no tenant in its `user_roles` row.
+- **Can one person hold a role in more than one tenant**, a bookkeeper for two clubs? Then
+  ask whether they see their tenants together, or choose one at a time with a switcher. The
+  second keeps "one tenant per request" from DDD.md chapter 4 intact and is the usual answer.
+- **Who may sign in**: only people an admin invited, linked on their first sign-in by a
+  verified email address, or anybody, who then gets no rights until somebody grants them.
+  Invited only is the usual answer, and a login nobody invited gets a 403 `no-access`.
+
+Then name the roles per tenant at question 7. Record all of it in the project `CLAUDE.md`
+under Tenants. A multi-tenant project is a reason to choose DDD at the next question, see
+DDD.md chapter 1.
+
+### 4. Architecture: the default, or domain-driven design
 
 Does the domain have rules that must hold whatever changes the data, state that moves in
 steps, or records that are only consistent together? Or is it lists and forms with field
@@ -60,16 +91,15 @@ validation?
   when the project has tenants, one query filter per tenant.
 
 Ask it explicitly and explain the difference in those terms; chapter 1 of DDD.md says when
-to choose it. Ask in the same breath whether the project is multi-tenant, and what the
-tenant is called in the business (a club, a practice, an organization), because DDD.md
-chapter 4 builds on it. Record both in the project `CLAUDE.md`.
+to choose it. A yes to tenants at question 3 is a strong reason for DDD, because DDD.md
+chapter 4 builds the tenant filter on it. Record the choice in the project `CLAUDE.md`.
 
 When the answer is DDD, the scaffold changes in four places: a `<Product>.Domain.UnitTests`
 project, the `DomainRuleException` and its handler, the extra architecture test of DDD.md
 chapter 8, and, with tenants, the tenant interface with the query filter in the
 `DbContext`. Import `@.standards/dotnet/DDD.md` in the project `CLAUDE.md`.
 
-### 4. Entry points
+### 5. Entry points
 
 The stack is not a question. Every project is a .NET API in `src/<Product>.Api` and a
 React frontend in `src/<Product>.Web`, in one repository. Do not ask whether the project
@@ -83,7 +113,7 @@ forms and component library. The React standard leaves these open on purpose, se
 `@.standards/react/ARCHITECTURE.md`, so the project has to decide them and record them.
 An answer of "not decided yet" is fine for anything the first screen does not need.
 
-### 5. Database
+### 6. Database
 
 PostgreSQL unless there is a reason. If there is a reason, record it as a deviation with
 the reason attached, otherwise someone will "fix" it later.
@@ -91,7 +121,7 @@ the reason attached, otherwise someone will "fix" it later.
 Ask which major version, because it has to match across the compose file, CI and
 production.
 
-### 6. Authentication provider
+### 7. Authentication provider
 
 Kinde or Entra ID, and which tenant. Authentication is never built in-house and passwords
 are never stored. See `@.standards/ops/database.md` for the identity model that goes with
@@ -101,7 +131,10 @@ provider and its subject.
 Ask for the system user id as well, or decide to generate one. Every row needs a
 `created_by`, including the rows no logged-in person ever creates.
 
-Ask which roles the application needs, and start with as few as the answer allows. Where
+Ask which roles the application needs, and start with as few as the answer allows. With
+tenants, ask for each role whether it holds per tenant or above all of them, and name what
+each may do; the answers of question 3 already say whether there is a role above all
+tenants and whether one person can hold roles in several. Where
 they live is not a question: in our own database, in `user_roles`, never as roles or
 permissions at the provider. See `@.standards/general/security.md` chapter 2 and
 `@.standards/ops/database.md` chapter 4. Do not tell the developer to create roles or
@@ -109,7 +142,10 @@ permissions in Kinde or Entra ID. The first admin comes from `Authorization:Admi
 per environment; ask for the developer's subject at the provider, or leave the
 development setting empty and say where to find it after the first sign-in. Scaffold the
 `/me` endpoint that returns the user's roles, so the frontend can show what they may do,
-and the integration test that a role claim inside the token gives a 403.
+and the integration test that a role claim inside the token gives a 403. With tenants, `/me`
+also returns the roles per tenant with the tenant's name and the tenant the request works in,
+so the frontend can offer the switcher, and the integration tests cover a switch to somebody
+else's tenant being refused.
 
 The access token supplies the subject and the email address, nothing else. For Kinde, tell
 the developer to switch on only **Email** under the application's Tokens, "Customize access
@@ -117,7 +153,7 @@ token". The name comes from the ID token: scaffold `POST /me/sync`, which the fr
 after signing in with the given and family name from the provider's SDK, and a domain
 method that fills in an empty name only. See `@.standards/ops/database.md` chapter 4.
 
-### 7. Local ports
+### 8. Local ports
 
 Two fixed ports on `localhost`, one for the frontend and one for the API, and the dashboard one
 below the frontend. Do not take the defaults of the tools, and do not invent a pair: read
@@ -162,7 +198,7 @@ Export the certificate yourself while scaffolding, so that what you hand over ru
 `dotnet dev-certs https --check --trust` and ask the developer to run it when it is not
 trusted yet.
 
-### 8. Environments and hosting
+### 9. Environments and hosting
 
 Where does this run, and who is allowed to deploy to it? The answer drives the deploy
 jobs in the CD workflow. See `@.standards/ops/environments.md`.
@@ -202,7 +238,7 @@ whether the project has more than one developer here, not only at branch protect
 If none of this is decided yet, say so in the project `CLAUDE.md` rather than inventing
 something.
 
-### 9. Documentation language
+### 10. Documentation language
 
 The team's call, but it has to be one language. Record it.
 
@@ -238,7 +274,7 @@ and why.
    will not stop a deploy.
 9. **Branch and protection** per `@.standards/general/git-workflow.md`: one long-lived
    branch, `main`, protected, with the required checks on it. There is no `develop`. Whether
-   the project has more than one developer, asked at question 8, decides whether a review
+   the project has more than one developer, asked at question 9, decides whether a review
    is required or whether the checks carry it alone. Working alone changes who approves, not
    whether the protection is on, and not whether a change goes through a pull request.
 

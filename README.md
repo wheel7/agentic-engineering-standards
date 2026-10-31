@@ -64,7 +64,7 @@ cp .standards/templates/CLAUDE.project.md CLAUDE.md
 claude
 ```
 
-Then run `/wheel7:project-setup`. It asks the nine things that cannot be derived from an
+Then run `/wheel7:project-setup`. It asks the ten things that cannot be derived from an
 empty repository, product name, domain language and the local ports among them, and
 scaffolds afterwards.
 Finish by filling in the placeholders it could not answer for you in `CLAUDE.md`.

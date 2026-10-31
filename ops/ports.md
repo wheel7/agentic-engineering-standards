@@ -31,7 +31,8 @@ block as well.
 |---|---|---|---|---|---|
 | Havenmeester | 5040 | 5043 | 5044 | 5045 | 5050 Afas mock (compose); preview 4044 |
 | Bobinera | 5047–5049, its own layout | 5047 | 5048 | 5049 | preview 4173 (before this register) |
-| *next* | 5060 | 5063 | 5064 | 5065 | |
+| Postbode | 5060 | 5063 | 5064 | 5065 | preview 4064 |
+| *next* | 5070 | 5073 | 5074 | 5075 | |
 
 Bobinera and the Afas mock of Havenmeester predate the blocks and keep their ports: moving
 them means changing the redirect URLs at the identity provider. A new project takes the next
