@@ -65,6 +65,7 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 - **Entry points**: <Product>.Api, <Product>.Web <and optionally .Worker>
 - **Architecture**: <the default of dotnet/ARCHITECTURE.md / domain-driven design, dotnet/DDD.md, because ...>
 - **Tenants**: <none / multi-tenant; the tenant is called ... (`<Tenant>Id`), and how a request knows its tenant>
+- **Roles per tenant**: <which roles hold per tenant and which above all tenants; whether one person can hold roles in several tenants, and whether they then choose one or see them together; whether people sign in by invitation only>
 
 ### Language
 

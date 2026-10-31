@@ -166,8 +166,17 @@ private void ApplyClubFilters(ModelBuilder modelBuilder)
 - **Every feature has an integration test** that another tenant's record is a 404 and never
   shows up in a list or a search.
 
-How the current tenant is known (claims, a header for an admin who switches) belongs to the
-project's authentication and is recorded in its `CLAUDE.md`.
+How the current tenant is known belongs to the project's authentication and is recorded in
+its `CLAUDE.md`. The usual answer, from the first two projects:
+
+- **A header that the frontend's switcher sets**, read once per request next to the user
+  lookup. An admin above all tenants may switch to any tenant that exists. Anybody else may
+  only switch to a tenant they hold a role in.
+- **A switch that is not allowed is a 403, never ignored.** Ignoring it would quietly show
+  the data of another tenant, or, for an admin, of every tenant.
+- **Without a header**, somebody with a role in exactly one tenant works in that one.
+  Somebody with roles in several, and an admin, start without one. A create then throws the
+  403 from `RequireClubId()`, and an admin's lists show every tenant.
 
 ---
 

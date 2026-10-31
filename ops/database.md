@@ -250,7 +250,10 @@ What a user may do lives here too, never at the provider. The reasons are in
   enough that a request costs no extra query, and short enough that a revoked role stops
   working before anybody notices it was still there.
 - **A multi-tenant project** puts the tenant in the row, `(user_id, club_id, role)`, because
-  someone can manage one club and only play in another.
+  someone can manage one club and only play in another. A role above all tenants, such as the
+  owner's admin, has no tenant in its row. Make the tenant column nullable and add a check
+  constraint that ties a null tenant to that role and a filled one to every other role. Make
+  the unique index treat nulls as equal (`NULLS NOT DISTINCT`), or one user can be admin twice.
 
 ### The first admin
 
