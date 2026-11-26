@@ -29,6 +29,10 @@ the checklist instead.
    Both in one handler is not an option - split it.
 4. Look at an existing feature in the same repo and follow that style. The conventions
    below apply, but the existing project wins when in doubt.
+5. **A new domain concept, or a new external system? Ask for its name first.** Propose
+   one, say which word the users use, and wait for the answer before writing a file. Then
+   add it to the glossary in the project `CLAUDE.md`. See
+   `.standards/general/language.md` chapter 7.
 
 ## Steps
 
