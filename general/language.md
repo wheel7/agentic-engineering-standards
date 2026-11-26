@@ -130,6 +130,28 @@ for it.
 New projects get asked this during setup. See
 [`../skills/project-setup/SKILL.md`](../skills/project-setup/SKILL.md).
 
+### Every new name is asked for
+
+The language is decided once. The words are not: every new domain concept gets its name
+from the developer, not from the agent. That holds for an entity or aggregate, and just as
+much for a service or an external system the application talks to, which ends up in folders,
+namespaces, tables and routes all at once.
+
+So before the first file of a new concept is written, ask:
+
+- which name the concept gets in code, with a proposal and the word the users say;
+- for option B, whether the proposal is a translation the users would recognise, or a word
+  the agent made up.
+
+Ask it as a question of its own, before the code exists. A name chosen by the agent reads
+like a decision in the diff, and renaming it afterwards touches every layer, the migration
+included. Then add the pair to the glossary in the project `CLAUDE.md`.
+
+The rule came from the first project: the agent named the link with the Watersportverbond
+`Federation`, a word nobody there used, and it went into eight commits before the developer
+asked where it came from. The developer chose `Watersport`, and the rename touched every
+layer, the migration and the API routes.
+
 ## 8. Writing style
 
 These hold for everything written in a project, in any language: screen texts, error
