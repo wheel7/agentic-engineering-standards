@@ -254,9 +254,11 @@ whether the project has more than one developer here, not only at branch protect
 If none of this is decided yet, say so in the project `CLAUDE.md` rather than inventing
 something.
 
-### 10. Documentation language
+### 10. Language of the prose
 
-The team's call, but it has to be one language. Record it.
+Documentation, code comments, commits, pull requests and issues. Ask whether the repository is
+public or private: public is English, private is the language of the team. Record it. See
+`@.standards/general/language.md` chapter 5.
 
 ## Then scaffold
 

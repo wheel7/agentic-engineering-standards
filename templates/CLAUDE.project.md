@@ -80,9 +80,8 @@ Do that in a PR of its own, so the change in the standards is visible in the dif
 - **Agreed domain terms**: <Polis, Schademelding, ... - the words that must not be translated>
 - **Glossary** (only when domain concepts are English and the users speak another language):
   <users' word -> code word, e.g. lid -> Member, ligplaats -> Location>
-- **Documentation in this repo**: <English / Dutch>
-- **Commit messages and pull request titles**: English
-- **Pull request descriptions, comments and issues**: <English / Dutch>
+- **Prose** (documentation, code comments, commits, pull requests, issues): <English for a public
+  repository / the language of the team for a private one>
 
 ### Domain
 

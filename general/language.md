@@ -95,30 +95,39 @@ The one exception is public content pages meant to be found by a search engine, 
 as a marketing page. Their slug is content, written for the reader, so it is in the
 reader's language. That never applies to anything behind a login.
 
-## 5. Documentation
+## 5. Prose follows who can read the repository
 
-This repository is English, because it is public and the people who might get something
-out of it are not all Dutch.
+Everything written as prose in a repository is in one language, and which one depends on
+who can read it:
 
-A project's own documentation is the team's call. Pick one language and stay there.
-Half-translated documentation is worse than either option, because nobody can tell what
-the norm is any more.
+| The repository is | Prose is in |
+|---|---|
+| public | English |
+| private | the language of the team |
 
-## 6. Commit messages, pull requests and issues
+Prose is documentation, code comments, commit messages, pull request titles and
+descriptions, their comments, and issues. Identifiers are not prose: they follow chapters 1
+and 2 whatever the repository is.
 
-**Commit messages are English.** They sit next to the code, they travel with the
-repository, and everyone who clones it reads them. The same goes for the title of a pull
-request, because squash merging makes it the subject of the commit.
+**A public repository is English** because the people who might get something out of it are
+not all Dutch. This repository is one.
 
-**The description of a pull request, its comments and the issues are in the language of the
-team.** That is where the developer reads what an agent did and decides whether to merge it.
-A developer who thinks in Dutch reads a Dutch description faster and misses less. The
-project `CLAUDE.md` records which language that is, and it is English unless it says
-otherwise.
+**A private repository is in the language of the team**, because the only people who read it
+are the team. A developer who thinks in Dutch reads a Dutch description faster and misses
+less, and that description is where the developer decides whether to merge what an agent
+wrote. Squash merging puts the pull request title and description in the history, so the
+history is in that language too, and that is fine: one language, whole.
 
-A description in another language must not end up in the history. So squash merging takes
-the pull request title and the commit messages of the branch, not the description, see
-[`git-workflow.md`](git-workflow.md) chapter 3.
+The project `CLAUDE.md` records the language. Without it, prose is English.
+
+**The choice is about what is written from now on.** Changing it is no reason to translate
+what is already there. Half-translated documentation is worse than either language, so a
+translation is a pull request of its own, or not done at all.
+
+## 6. Making a private repository public
+
+Then its prose has to be English, from that day on. Decide whether the old prose is
+translated before the repository opens, because after that the history is public too.
 
 ## 7. Write the choice down
 
