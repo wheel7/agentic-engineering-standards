@@ -308,8 +308,10 @@ same road as any other change: a pull request, a green run, a promotion.
 > publishes them, no target they go to and no way to roll them back. The principle from
 > the top of this document still holds: build once, in CI, and promote that same output
 > rather than rebuilding per environment. That has a consequence worth knowing before you
-> start: a Vite build bakes its environment variables in at build time, so the API URL
-> cannot be one of them if the same output has to serve every environment.
+> start: a Vite build bakes its environment variables in at build time, so nothing that differs
+> per environment can be one of them if the same output has to serve every environment. The
+> API needs no URL at all: the frontend calls `/api` on its own host, see
+> [`environments.md`](environments.md) chapter 2.
 
 ```yaml
 name: CD

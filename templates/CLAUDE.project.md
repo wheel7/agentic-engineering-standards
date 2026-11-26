@@ -169,7 +169,8 @@ docker compose up -d --wait
 - **Aspire dashboard**: <https://localhost:xxxx - 1>
 - **Local frontend URL**: <https://localhost:xxxx>, fixed and strict
 - **Local API URL**: <https://localhost:yyyy>, under Aspire and `dotnet run`, and as the
-  host side of the port mapping in compose.
+  host side of the port mapping in compose. The frontend reaches it at `/api` on its own
+  URL, through the dev server's proxy.
 - **Local HTTPS certificate**: the ASP.NET development certificate, once per machine, from
   the repository root. `.certs/` holds a private key and is not in git.
 
@@ -202,13 +203,14 @@ chmod 644 .certs/localhost.pem .certs/localhost.key
 
 | Environment | URLs | Database | App registration | Deploy approved by |
 |---|---|---|---|---|
-| Test | <test.example.com, api.test.example.com> | rebuilt on deploy | <name> | automatic |
-| Acceptance | <acc.example.com, api.acc.example.com> | persists | <name> | <who> |
-| Production | <example.com, api.example.com> | persists | <name> | <who> |
+| Test | <test.example.com, API under /api> | rebuilt on deploy | <name> | automatic |
+| Acceptance | <acc.example.com, API under /api> | persists | <name> | <who> |
+| Production | <example.com, API under /api> | persists | <name> | <who> |
 
 - **Seed data for test**: <where it lives, and what is in it>
 - **Acceptance refresh**: <how often, and where the anonymization runs>
 - **Secrets**: <which GitHub Environment holds what>
+- **Outgoing IP address** (for allowlists at partners): <acceptance, production; never test>
 
 ### Deviations from the standard
 

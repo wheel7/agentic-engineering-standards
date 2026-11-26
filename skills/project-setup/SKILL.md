@@ -177,7 +177,7 @@ This comes right after the authentication provider because that is what makes it
 The provider only redirects to a callback URL that was registered with it, scheme and port
 included, so `https://localhost:<frontend port>` ends up typed into Kinde or Entra ID. If
 the port moves, signing in stops working, with an error page at the provider that says
-nothing about ports. The API needs the same origin for its CORS allowlist.
+nothing about ports. The dev server's `/api` proxy needs the API port as its target.
 
 The scheme is not a question: both run on HTTPS locally, with the ASP.NET development
 certificate, and there is no plain HTTP listener beside it. Do not ask whether the project
@@ -200,7 +200,9 @@ Apply the answer everywhere it appears, see `@.standards/ops/containers.md` chap
 - The API in compose: the host side of the port mapping, `ASPNETCORE_URLS` and the Kestrel
   certificate paths as environment variables, and `.certs` mounted read-only. The image
   itself stays on plain 8080.
-- The API URL the frontend is configured with, and the CORS allowlist for development.
+- The `/api` proxy of the frontend dev server (and preview), aimed at the API port, with the
+  prefix stripped and the certificate verified with the one in `.certs`. The frontend calls
+  `/api/...` relatively and gets no API URL in its configuration; the API gets no CORS.
 - `.certs/` in `.gitignore` and in `.dockerignore`, before the certificate is exported.
 - The callback and logout URLs to register at the provider, in the project `CLAUDE.md`.
 
@@ -220,11 +222,13 @@ jobs in the CD workflow. See `@.standards/ops/environments.md`.
 there is somewhere to run it (a home cluster usually means from the start), acceptance only
 when somebody outside the team signs off. For each deployed environment, ask:
 
-- The hostnames, nested under the environment label rather than prefixed:
-  `test.<domain>` and `api.test.<domain>`, production without a prefix.
+- The hostname, nested under the environment label rather than prefixed: `test.<domain>`,
+  production without a prefix. The API sits under `/api` on that host, never on an `api.`
+  host of its own unless it is a product for outside consumers; environments.md chapter 2.
 - How a non-production environment is kept private: reachable only from a private network
-  such as Tailscale, or an IP allowlist. Not basic authentication, which breaks the API calls
-  of the frontend; environments.md chapter 2 says why.
+  such as Tailscale, an IP allowlist, or a sign-in gate such as Authelia with
+  `/api/webhooks/` and the private network let past it. Not basic authentication;
+  environments.md chapter 2 says why.
 - Whether the database is rebuilt on every deploy or persists. Test is rebuilt,
   acceptance persists. Getting this backwards costs you either reproducibility or
   realism, and you will not notice which until you need it.
@@ -346,8 +350,8 @@ and why.
   signed-in user unless it opts out, and nothing lives at `/`. Tell the developer, because
   it is the first thing they will open in a browser.
 - Confirm the frontend is on `https://localhost:<frontend port>`, served by Vite itself with
-  `--port <frontend port>` and not by a leftover dev server, and that the API accepts a CORS
-  preflight from that origin. Check that pgAdmin opens from the dashboard, and that
+  `--port <frontend port>` and not by a leftover dev server, and that
+  `https://localhost:<frontend port>/api/health/ready` answers 200 through its proxy. Check that pgAdmin opens from the dashboard, and that
   `git status` shows no changed `package-lock.json`.
 - Stop Aspire and run `docker compose up` once as well: the image has to start on its own,
   because that is what the journeys and a deployed host run.

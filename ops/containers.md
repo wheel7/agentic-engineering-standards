@@ -163,6 +163,23 @@ Points to watch, every one of them found the hard way:
   random port behind its own proxy, and the provider only redirects to the registered port.
   Unproxied, Aspire passes the port to Vite as `--port`, and Vite serves HTTPS itself with
   the certificate from "Local HTTPS" below.
+- **The frontend dev server proxies `/api` to the API.** The frontend calls `/api/...` on its
+  own origin, as it does when deployed (see [`environments.md`](environments.md) chapter 2),
+  so the dev server sends `/api` on to the API's port and strips the prefix. No CORS in
+  development either, and no API address in the frontend's configuration. The proxy verifies
+  the API's certificate with the one in `.certs`, rather than switching verification off:
+
+  ```ts
+  // vite.config.ts, in server and in preview
+  proxy: {
+    "/api": {
+      target: "https://localhost:5001", // the project's API port, see "Local ports"
+      rewrite: (path) => path.replace(/^\/api/, ""),
+      agent: new https.Agent({ ca: readFileSync(".certs/localhost.pem") }),
+    },
+  },
+  ```
+
 - **`npm ci`, not the default install.** Aspire runs `npm install` on every start, which
   rewrites `package-lock.json` whenever the local npm differs from the one that wrote it.
 - **Persistent containers keep running** after `aspire run` stops, so the next start is
@@ -266,8 +283,7 @@ One number has to show up in several places, and they have to agree:
 | The `web` endpoint in `AppHost.cs` | the frontend port, unproxied |
 | `launchSettings.json` of the API | the API port, for Aspire and `dotnet run` |
 | `ports:` of the API in compose | the API port on the host side |
-| The API URL the frontend is configured with | the API port |
-| The CORS allowlist for development | the frontend origin, see [`../general/security.md`](../general/security.md) |
+| The `/api` proxy of the frontend dev server | the API port, as its target |
 | The application registration at the provider | the frontend origin, as callback and as logout URL |
 
 The API answers on the same port under Aspire, under `dotnet run` and in a container, so
