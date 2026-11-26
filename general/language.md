@@ -104,10 +104,21 @@ A project's own documentation is the team's call. Pick one language and stay the
 Half-translated documentation is worse than either option, because nobody can tell what
 the norm is any more.
 
-## 6. Commit messages and pull requests
+## 6. Commit messages, pull requests and issues
 
-English. They sit next to the code, they travel with the repository, and everyone who
-clones it reads them.
+**Commit messages are English.** They sit next to the code, they travel with the
+repository, and everyone who clones it reads them. The same goes for the title of a pull
+request, because squash merging makes it the subject of the commit.
+
+**The description of a pull request, its comments and the issues are in the language of the
+team.** That is where the developer reads what an agent did and decides whether to merge it.
+A developer who thinks in Dutch reads a Dutch description faster and misses less. The
+project `CLAUDE.md` records which language that is, and it is English unless it says
+otherwise.
+
+A description in another language must not end up in the history. So squash merging takes
+the pull request title and the commit messages of the branch, not the description, see
+[`git-workflow.md`](git-workflow.md) chapter 3.
 
 ## 7. Write the choice down
 
