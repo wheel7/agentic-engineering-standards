@@ -108,8 +108,10 @@ One commit per change also means one image per change, and a history in which ev
 is something you could promote.
 
 **Make the repository enforce it.** In the repository settings, allow squash merging only,
-with the pull request title as the commit title, and turn on deleting the branch after a
-merge. With all three methods on, the wrong one is a single click away and the default
+with the pull request title as the commit title and the commit messages of the branch as its
+body, and turn on deleting the branch after a merge. Not the description as the body: it may
+be in the team's language, see [`language.md`](language.md) chapter 6, and the history is
+English. With all three methods on, the wrong one is a single click away and the default
 button is a merge commit.
 
 **Size**: if you cannot describe the change in two sentences, split it. A reviewer who
