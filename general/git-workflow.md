@@ -71,7 +71,7 @@ that went live. `git log production` therefore answers what is live, and
 
 ## 2. Commit messages
 
-**English**, see [`language.md`](language.md).
+In the language of the repository, see [`language.md`](language.md) chapter 5.
 
 - The subject line says what changed, in at most 72 characters.
 - The body says why. What changed is visible in the diff; why it changed is not, and in
@@ -108,11 +108,10 @@ One commit per change also means one image per change, and a history in which ev
 is something you could promote.
 
 **Make the repository enforce it.** In the repository settings, allow squash merging only,
-with the pull request title as the commit title and the commit messages of the branch as its
-body, and turn on deleting the branch after a merge. Not the description as the body: it may
-be in the team's language, see [`language.md`](language.md) chapter 6, and the history is
-English. With all three methods on, the wrong one is a single click away and the default
-button is a merge commit.
+with the pull request title as the commit title and its description as the body, and turn on
+deleting the branch after a merge. The language of both follows the repository, see
+[`language.md`](language.md) chapter 5. With all three methods on, the wrong one is a single
+click away and the default button is a merge commit.
 
 **Size**: if you cannot describe the change in two sentences, split it. A reviewer who
 opens eight hundred lines does not review them, they skim them and approve. Working alone
