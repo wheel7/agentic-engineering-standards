@@ -36,57 +36,71 @@ where something can be subtly out of date.
 
 ## 2. Naming
 
-Nest the environment, do not prefix it:
+Nest the environment, do not prefix it. One host per environment, with the API under `/api`
+on that host:
 
 ```
-example.com                 api.example.com          production
-test.example.com            api.test.example.com     test
-acc.example.com             api.acc.example.com      acceptance
+example.com                 example.com/api          production
+test.example.com            test.example.com/api     test
+acc.example.com             acc.example.com/api      acceptance
 ```
 
-`testapi.example.com` works fine until the fourth service arrives and you are inventing
-`testadmin` and `testworker`. Nesting keeps one pattern no matter how many services there
+`testadmin.example.com` works fine until the fourth service arrives and you are inventing
+`testworker` and `testdocs`. Nesting keeps one pattern no matter how many services there
 are, and it groups every hostname of an environment under one label.
 
 Production has no prefix. An environment marker on the production URL is a marker
 somebody will eventually read as "not the real one".
 
-### The API has its own host
+### The API sits under `/api` on the application's host
 
-Always, in every environment. Not a path on the frontend's host that the ingress routes
-to the API.
+Always, in every environment. The proxy routes `/api` to the API's container and strips the
+prefix (in Traefik a `stripPrefix` middleware); everything else goes to the frontend's
+container. The frontend and the API stay separate containers, only the route differs.
 
-- **Test is then the same as production.** With the API on the frontend's host in test,
-  CORS and the `connect-src` of the Content-Security-Policy are never exercised there. They
-  break for the first time in production.
-- **The frontend and the API are separate containers.** Each gets its own route in the
-  ingress, by host. Nothing has to know which paths belong to whom.
-- **The paths carry no prefix.** See [`../general/api-contracts.md`](../general/api-contracts.md)
-  chapter 1.
+- **One origin per environment.** The frontend calls `/api/...` on its own host, so the
+  browser makes a same-origin call: no CORS, no API host in the `connect-src`, and no API
+  address in the runtime configuration that differs per environment.
+- **Test is the same as production.** Every environment routes the same way, so nothing
+  about the route can work on test and break on production.
+- **A gate covers the whole application.** A sign-in gate in front of a non-production
+  environment (see below) sets a cookie for its host. The browser sends that cookie to
+  `/api` as well, but never to another host, and a CORS preflight carries no cookies at
+  all. With the API on a host of its own, the API stays outside the gate.
+- **One hostname, one certificate and one DNS record per environment**, not two.
+- **The paths in the code carry no prefix.** See
+  [`../general/api-contracts.md`](../general/api-contracts.md) chapter 1.
 
 What that asks of the application:
 
-- The frontend reads the API's address from its runtime configuration, so one image runs
-  in every environment.
-- The API allows the frontend's origin through CORS, per environment, from configuration
-  ([`../general/security.md`](../general/security.md) chapter 2).
-- The `connect-src` of the frontend lists the API host of every environment. It is one
-  image, so the policy has to fit all of them.
+- The frontend calls the API at the relative path `/api/...`, never with a host in front.
+- In development the frontend's dev server proxies `/api` to the API's port and strips the
+  prefix, so the frontend uses the same path as when it is deployed. See
+  [`containers.md`](containers.md) chapter 3.
+- The API knows it runs behind a proxy. An absolute URL it builds (a `Location` header, a
+  link in an email) includes the `/api` prefix, from `X-Forwarded-Prefix` (which Traefik's
+  `stripPrefix` sets) or from a base URL in configuration.
+
+**A host of its own** only when the API becomes a product of its own for outside consumers,
+with its own versions, rate limits, documentation or hosting. Then it gets `api.example.com`
+and `api.test.example.com`, the paths still without a prefix, and the frontends that call it
+need CORS and the API host in their `connect-src`. A mobile app or another client of the
+team's own is not a reason: it calls `https://example.com/api/...` with a bearer token, and
+CORS and cookies do not apply to it.
 
 ### Test on a shared domain
 
-A product with its own domain follows the pattern above: `test.example.com` and
-`api.test.example.com`. When the test environments of several products share one domain,
-for example because the product domains have to keep their DNS where the mail is, put the
-product in the first label and keep the environment as the shared parent:
+A product with its own domain follows the pattern above: `test.example.com`. When the test
+environments of several products share one domain, for example because the product domains
+have to keep their DNS where the mail is, put the product in the first label and keep the
+environment as the shared parent:
 
 ```
-product.test.shared.com          product-api.test.shared.com
+product.test.shared.com          product.test.shared.com/api
 ```
 
 One wildcard record and one wildcard certificate (`*.test.shared.com`) then cover every
-product. `api.product.test.shared.com` would need a wildcard per product. The rule stays
-the same: the environment is nested, and the API has its own host.
+product. The rule stays the same: the environment is nested, and the API sits under `/api`.
 
 ### Non-production is not public
 
@@ -95,17 +109,37 @@ data that looks real. At a minimum:
 
 - An `X-Robots-Tag: noindex` header, so the environment does not turn up in search
   results.
-- **Reachable only from a private network**, such as Tailscale, or an IP allowlist in front of
-  the proxy. A test environment on a home cluster that is only on the tailnet has this
-  already.
+- **A gate in front of it.** Reachable only from a private network, such as Tailscale, or
+  an IP allowlist in front of the proxy. A test environment on a home cluster that is only
+  on the tailnet has this already. When people outside the network need it (acceptance,
+  signed off by the business), a sign-in gate with forward authentication at the proxy,
+  such as Authelia, with its own users per environment.
 
-Not basic authentication. The browser asks for it before the application loads, it does
-not travel with the CORS preflight of a single page application, so calls from the
-frontend to `api.test.<domain>` fail, and it gets in the way of the identity provider's
-redirects. It looks like protection and mostly breaks the application.
+A sign-in gate lets two things past it:
+
+- **`/api/webhooks/`**, so partners can reach the environment. Webhooks protect themselves,
+  with a signature or a secret in the path (see
+  [`../general/api-contracts.md`](../general/api-contracts.md) chapter 1).
+- **`/api` from the private network**, so a mobile app on a tester's phone, with Tailscale,
+  reaches the API without a browser to sign in to the gate. The API still requires its own
+  token.
+
+Not basic authentication. The browser asks for it before the application loads, in a
+dialog that cannot be styled, a mobile app cannot answer it, and it gets in the way of the
+identity provider's redirects. It looks like protection and mostly breaks the application.
 
 This is not paranoia. A test environment carrying a restore of production data, indexed
 and reachable, is a data breach with a URL.
+
+### Allowlists at an outside party
+
+When a partner's API only accepts calls from known addresses, give the outgoing IP addresses
+of production and acceptance, never that of test. Test talks to a fake of the partner, such
+as a local mail catcher instead of the real mail server; a test against the real partner
+happens on acceptance. A test environment on a home connection also has an address that can
+change, and allowing it opens the whole home network to the partner. Record the outgoing
+address per environment in the project `CLAUDE.md`, and say when one will change, for
+example because the environment moves to another host.
 
 ---
 
@@ -300,15 +334,16 @@ persists, which app registration it uses, and who is allowed to deploy to it.
 
 ## 8. Checklist: a new environment
 
-1. Own hostnames, nested under the environment label, with the API on a host of its own.
-   Its origin in the CORS allowlist, its host in the `connect-src` of the frontend.
+1. Own hostname, nested under the environment label, with the API under `/api` on it and
+   the prefix stripped by the proxy.
 2. Own Postgres container and own volume.
 3. Decided and written down: rebuilt on deploy, or persists.
 4. If it persists and holds a production restore: anonymization runs inside the restore.
 5. The application registration it uses at the identity provider: the shared one (solo), or
    its own with its own audience, see chapter 4.
 6. Own secrets, in a GitHub Environment of its own.
-7. Not production? Then `noindex`, and reachable only from a private network or an
-   allowlist, see chapter 2.
-8. Memory and CPU limits on every container.
-9. Written into the project `CLAUDE.md`.
+7. Not production? Then `noindex`, and reachable only from a private network, an
+   allowlist or behind a sign-in gate, see chapter 2.
+8. Its outgoing IP address recorded, if a partner keeps an allowlist (not for test).
+9. Memory and CPU limits on every container.
+10. Written into the project `CLAUDE.md`.

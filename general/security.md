@@ -107,9 +107,14 @@ because nothing here said where they belong.
 registration per service. Not a shared API key, because a shared key cannot be revoked for
 one caller and cannot tell you which caller used it.
 
-**CORS** is an explicit allowlist of origins, read from configuration so it differs per
-environment. Never `AllowAnyOrigin` together with credentials; the browser will refuse it
-anyway, and the version that does work is the one you did not want.
+**CORS** is off by default. The frontend calls the API under `/api` on its own host, in
+development through the dev server's proxy, so the browser never makes a cross-origin call
+(see [`../ops/environments.md`](../ops/environments.md) chapter 2). Only when another origin
+really has to call the API from a browser, such as a form on a customer's website, does the
+API get CORS: an explicit allowlist of origins, read from configuration so it differs per
+environment, and only on the endpoints that origin needs. Never `AllowAnyOrigin` together
+with credentials; the browser will refuse it anyway, and the version that does work is the
+one you did not want.
 
 ---
 
@@ -175,7 +180,7 @@ to be worth a sentence.
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `Content-Security-Policy` | as tight as the application allows, and `frame-ancestors 'none'`; `connect-src` names the API host of every environment, see [`../ops/environments.md`](../ops/environments.md) chapter 2 |
+| `Content-Security-Policy` | as tight as the application allows, and `frame-ancestors 'none'`; `connect-src 'self'` covers the API under `/api`, see [`../ops/environments.md`](../ops/environments.md) chapter 2 |
 
 An API that serves only JSON needs HSTS and `nosniff`; the rest are about documents in a
 browser. Non-production environments additionally get `X-Robots-Tag: noindex`, see

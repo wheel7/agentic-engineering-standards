@@ -22,11 +22,17 @@ goes over the wire.
 - **Actions that are not CRUD get a sub-resource with a verb.**
   `POST /todos/{id}/complete`. Do not bend `PATCH` into meaning "complete it", because
   then the next reader has to guess which fields that touches.
-- **No `/api` prefix.** `/todos`, not `/api/todos`. The API has its own host in every
-  environment ([`../ops/environments.md`](../ops/environments.md) chapter 2), so the host
-  already says it is the API. A prefix only earns its keep when one host serves both the
-  frontend and the API, and these standards do not do that. The health checks sit at the
-  root as well: `/health/live` and `/health/ready`.
+- **No `/api` prefix in the code.** `/todos`, not `/api/todos`. Publicly the API sits
+  under `/api` on the application's host, and the proxy strips that prefix before the
+  request reaches the API ([`../ops/environments.md`](../ops/environments.md) chapter 2).
+  `/api` belongs to the routing, not to the API: a prefix in the code as well gives
+  `/api/api/todos`, and an API that later moves to a host of its own would carry it for
+  nothing. The health checks sit at the root as well: `/health/live` and `/health/ready`.
+- **Webhooks from partners go under `/webhooks/<partner>/`**, so publicly
+  `/api/webhooks/<partner>/`. One prefix lets the proxy treat them as a group, for example
+  to let them past the gate of a non-production environment. A partner that does not sign
+  its calls gets a long random segment at the end, `/webhooks/<partner>/<secret>`, with the
+  secret from configuration per environment, never in the code.
 
 ### Versioning
 
